@@ -4,6 +4,7 @@ Makefile.PL
 MANIFEST
 TODO
 README
+.gitignore
 examples/amf0_bench.pl
 t/GrianUtils.pm
 lib/Storable/ppport.h
@@ -57,6 +58,7 @@ t/56-store-etc-amf3.t
 t/57-deparse-amf0.t
 t/58-deparse-amf3.t
 t/60-bug.t
+t/61-amf-date.t
 t/AMF0/01-array-0-foo-bar-baz.pack
 t/AMF0/01-array-foo-bar-x2.pack
 t/AMF0/01-boolean-false.pack

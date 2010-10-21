@@ -2,13 +2,11 @@ package Storable::AMF0;
 use strict;
 use warnings;
 use Fcntl qw(:flock);
-our $VERSION = '0.79';
+our $VERSION = '0.80';
 use subs qw(freeze thaw);
 use Scalar::Util qw(refaddr reftype);    # for ref_circled
-
-require Exporter;
+use Exporter 'import';
 use Carp qw(croak);
-our @ISA = qw(Exporter);
 
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
@@ -20,7 +18,7 @@ our %EXPORT_TAGS = (
           freeze thaw	dclone
           retrieve lock_retrieve lock_store lock_nstore store nstore
           ref_lost_memory ref_clear
-          deparse_amf new_date perl_date
+          deparse_amf new_amfdate perl_date
           )
     ]
 );
@@ -63,15 +61,26 @@ sub lock_store($$) {
     $_[2] = 1;
     goto &store;
 }
+sub ref_lost_memory($);
+sub ref_clear($);
 {{
+	require XSLoader;
+	XSLoader::load( 'Storable::AMF', $VERSION );
     no warnings 'once';
     *nstore = \&store;
     *lock_nstore = \&lock_store;
+
+	no strict 'refs';
+
+	my $my_package = __PACKAGE__ . "::";
+	for my $other_package ( "Storable::AMF::", "Storable::AMF3::" ){
+#	print STDERR "*{ $other_package$_ } = *{ $my_package$_}\n" for qw(ref_clear ref_lost_memory);
+		*{ $other_package . $_ } = *{ $my_package . $_} for qw(ref_clear ref_lost_memory);
+	}
+	*{"Storable::AMF::$_"} = *{"Storable::AMF0::$_"} for grep m/retrieve|store/, @EXPORT_OK;
 }};
 
 sub _ref_selfref($$);
-sub ref_lost_memory($);
-sub ref_clear($);
 
 sub _ref_selfref($$) {
     my $obj_addr = shift;
@@ -122,18 +131,6 @@ sub ref_lost_memory($) {
     my %obj_addr;
     return _ref_selfref( \%obj_addr, $ref );
 }
-
-#~ sub dclone{
-#~ 	my $object = shift;
-#~ 	return thaw(treeze $_[0]);
-#~ }
-require XSLoader;
-XSLoader::load( 'Storable::AMF', $VERSION );
-
-#no strict 'refs';
-#*{"Storable::AMF0::$_"} = *{"Storable::AMF::$_"} for @{$EXPORT_TAGS{'all'}};
-
-# Preloaded methods go here.
 
 1;
 __END__

@@ -1,34 +1,21 @@
 package Storable::AMF;
 use strict;
 use warnings;
-use Fcntl qw(:flock);
-use Storable::AMF0;
-our $VERSION = '0.79';
-use vars qw/$OPT/;
-require Exporter;
-our @ISA = qw(Exporter);
-
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
+use Storable::AMF0; # install and create all methods
+our $VERSION = '0.80';
+use Exporter 'import';
 
 our %EXPORT_TAGS = (
     'all' => [
         qw(
           freeze thaw	dclone retrieve lock_retrieve lock_store lock_nstore store nstore ref_lost_memory ref_clear
-          deparse_amf new_date perl_date
+          deparse_amf new_amfdate perl_date
           )
     ]
 );
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw();
-our $OPTS;
-
-no strict 'refs';
-*{"Storable::AMF::$_"} = *{"Storable::AMF0::$_"} for @{ $EXPORT_TAGS{'all'} };
-
-package Storable::AMF0;
 
 1;
 __END__
@@ -149,25 +136,12 @@ This module writen in C for speed. Also this package allow freeze and thaw AMF3 
 
 =back
 
-=head1 NOTICE
-
-  Storable::AMF is currently is at development stage. 
-
-=cut
-
 =head1 LIMITATION
 
 At current moment and with restriction of AMF0/AMF3 format referrences to scalar are not serialized,
 and can't/ may not serialize tied variables.
 And dualvars (See Scalar::Util) are serialized as string value.
 Freezing CODEREF, IO, Regexp, REF, GLOB, SCALAR referenses restricted.
-
-=head1 TODO
-
-Add some options to functions.
-
-Document freezing and thawing XMLDocument, XML, Date
-May be add some IO and packet manipulated function (SEE AMF0/AMF3 at Adobe)
 
 
 =head1 SEE ALSO

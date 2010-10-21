@@ -1,6 +1,6 @@
-Storable::AMF version 0.14
+Storable::AMF version  latest 
 ========================
-freeze, thaw data in AMF0/AMF3 format like Storable 
+Perl serializator for  AMF0/AMF3 format ( fast, simple, agile )
 
 INSTALLATION
 
@@ -27,7 +27,7 @@ COPYRIGHT AND LICENCE
 
 Put the correct copyright and licence information here.
 
-Copyright (C) 2008 by A. G. Grishaev
+Copyright (C) 2010 by A. G. Grishaev
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.8 or,

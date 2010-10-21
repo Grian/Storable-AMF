@@ -13,7 +13,7 @@ use Storable::AMF3;
 use Storable::AMF;
 use Scalar::Util qw(refaddr);
 @methods = @Storable::AMF::EXPORT_OK;
-$totals = @methods * 3  + 1 * @methods+ 3 + 1;
+$totals = @methods * 3  + 2 * 2  + 1;
 eval "use Test::More tests => $totals";
 
 for my $module (qw(Storable::AMF Storable::AMF0 Storable::AMF3)){
@@ -23,11 +23,11 @@ for my $module (qw(Storable::AMF Storable::AMF0 Storable::AMF3)){
 my ($m, $n);
 ($m, $n) = qw(Storable::AMF Storable::AMF0);
 
-is(refaddr $m->can($_), refaddr $n->can($_), "identity for $_ in AMF0") for @methods;
+is(refaddr $m->can($_), refaddr $n->can($_), "identity for $_ in AMF0") for qw(ref_lost_memory ref-clear);
 
-($m, $n) = qw(Storable::AMF Storable::AMF3);
+($m, $n) = qw(Storable::AMF3 Storable::AMF0);
 
-is(refaddr $m->can($_), refaddr $n->can($_), "identity for $_ in AMF3") for qw(dclone ref_lost_memory ref-clear);
+is(refaddr $m->can($_), refaddr $n->can($_), "identity for $_ in AMF3") for qw(ref_lost_memory ref-clear);
 eval{
     Storable::AMF0::dclone([]);
     Storable::AMF0::ref_lost_memory([]);

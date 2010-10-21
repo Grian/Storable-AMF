@@ -2,12 +2,11 @@ package Storable::AMF3;
 use strict;
 use warnings;
 use Fcntl qw(:flock);
-our $VERSION = '0.79';
+our $VERSION = '0.80';
 use subs qw(freeze thaw);
-
-require Exporter;
+use Exporter 'import';
 use Carp qw(croak);
-our @ISA = qw(Exporter);
+use Storable::AMF0 ();
 
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
@@ -18,7 +17,7 @@ our %EXPORT_TAGS = (
         qw(
           freeze thaw	dclone retrieve lock_retrieve lock_store lock_nstore store nstore
           ref_clear ref_lost_memory
-          deparse_amf new_date perl_date
+          deparse_amf new_amfdate perl_date
           )
     ]
 );
@@ -68,21 +67,6 @@ sub lock_store($$) {
 }};
 require XSLoader;
 XSLoader::load( 'Storable::AMF', $VERSION );
-no warnings;
-no strict 'refs';
-use Storable::AMF0;
-
-#*Storable::AMF3::dclone = *Storable::AMF0::dclone;
-BEGIN {
-    *{"Storable::AMF3::$_"} = *{"Storable::AMF0::$_"}
-      for qw(dclone ref_lost_memory ref_clear);
-
-    #~ print "OK" if __PACKAGE__->can('ref_lost_memory');
-    #~ ref_lost_memory([]);
-}
-
-# Preloaded methods go here.
-
 1;
 __END__
 # Below is stub documentation for your module. You'd better edit it!

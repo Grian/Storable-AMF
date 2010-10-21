@@ -2046,24 +2046,29 @@ MODULE = Storable::AMF0 PACKAGE = Storable::AMF0
 
 void 
 dclone(SV * data)
+    ALIAS:
+	Storable::AMF::dclone= 1
+	Storable::AMF3::dclone= 2
     PROTOTYPE: $
     INIT:
         SV* retvalue;
     PPCODE:
+	PERL_UNUSED_VAR(ix);
         retvalue = deep_clone(aTHX_  data);
         sv_2mortal(retvalue);
         XPUSHs(retvalue);
 
 void
-thaw(data, ...)
-    SV * data
+thaw(SV *data, ...)
+    ALIAS:
+	Storable::AMF::thaw=1
     PROTOTYPE: $;$
     INIT:
         SV* retvalue;
         SV* io_self;
         struct io_struct io_record;
     PPCODE:
-
+	PERL_UNUSED_VAR(ix);
         if (SvMAGICAL(data))
         mg_get(data);
         // sting options mode
@@ -2127,15 +2132,16 @@ thaw(data, ...)
         }
 
 void
-deparse_amf(data, ...)
-    SV * data;
+deparse_amf(SV *data, ...)
     PROTOTYPE: $;$
+    ALIAS:
+	Storable::AMF::deparse_amf=1
     INIT:
         SV* retvalue;
         SV* io_self;
         struct io_struct io_record;
     PPCODE:
-
+	PERL_UNUSED_VAR(ix);
         if (SvMAGICAL(data))
         mg_get(data);
         // sting options mode
@@ -2194,8 +2200,9 @@ deparse_amf(data, ...)
 
 
 
-void freeze(data)
-    SV * data
+void freeze(SV *data)
+    ALIAS:
+	Storable::AMF::freeze=1
     PROTOTYPE: $
     INIT:
         SV * retvalue;
@@ -2203,7 +2210,7 @@ void freeze(data)
         struct io_struct io_record;
         int error_code;
     PPCODE:
-        //#io_self= newSVpvn("",0);
+	PERL_UNUSED_VAR(ix);        //#io_self= newSVpvn("",0);
         io_self= newSV(0);
         sv_2mortal(io_self);
         io_out_init(aTHX_  &io_record, 0, AMF0);
@@ -2390,13 +2397,13 @@ void freeze(data)
         }
 
 void
-new_date(NV timestamp )
+new_amfdate(NV timestamp )
     PREINIT:
     SV *mortal;
     PROTOTYPE: $
     ALIAS:
-	Storable::AMF::new_date=1
-	Storable::AMF0::new_date=2
+	Storable::AMF::new_amfdate=1
+	Storable::AMF0::new_amfdate=2
     PPCODE:
 	PERL_UNUSED_VAR( ix );
 	mortal=sv_newmortal();
@@ -2420,6 +2427,9 @@ perl_date(SV *date)
 	    mortal = sv_newmortal();
 	    sv_setnv( mortal, SvNV( date ) /1000);
 	    XPUSHs(mortal);
+	}
+	else {
+	    croak("Expecting perl/amf date as argument" );
 	}
 
 	
