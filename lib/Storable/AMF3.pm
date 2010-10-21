@@ -2,7 +2,7 @@ package Storable::AMF3;
 use strict;
 use warnings;
 use Fcntl qw(:flock);
-our $VERSION = '0.78';
+our $VERSION = '0.79';
 use subs qw(freeze thaw);
 
 require Exporter;
@@ -18,7 +18,7 @@ our %EXPORT_TAGS = (
         qw(
           freeze thaw	dclone retrieve lock_retrieve lock_store lock_nstore store nstore
           ref_clear ref_lost_memory
-          deparse_amf
+          deparse_amf new_date perl_date
           )
     ]
 );

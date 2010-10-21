@@ -278,3 +278,6 @@ Revision history for Perl extension Storable::AMF.
 
 0.78	        2010-10-15 11:31 +0400
 	-  Strawberry Perl (PERL_IMPLICIT_SYS make not compile Sigsetjmp)   # undefine
+0.79	        2010-10-20 15:31 +0400
+	-  Date support for AMF0, AMF3 dates
+	-  through perl_date, new_date

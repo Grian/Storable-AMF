@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_DEPRECATE
+#define _CRT_SECURE_NO_DEPRECATE // Win32 compilers close eyes...
 #define PERL_NO_GET_CONTEXT
 #undef  PERL_IMPLICIT_SYS // Sigsetjmp will not work under this
 #include "EXTERN.h"
@@ -40,6 +40,39 @@
 // #define setjmp _setjmp
 // #endif
 
+#define MARKER3_UNDEF	  '\x00'
+#define MARKER3_NULL	  '\x01'
+#define MARKER3_FALSE	  '\x02'
+#define MARKER3_TRUE	  '\x03'
+#define MARKER3_INTEGER	  '\x04'
+#define MARKER3_DOUBLE    '\x05'
+#define MARKER3_STRING    '\x06'
+#define MARKER3_XML_DOC   '\x07'
+#define MARKER3_DATE      '\x08'
+#define MARKER3_ARRAY	  '\x09'
+#define MARKER3_OBJECT	  '\x0a'
+#define MARKER3_XML	  '\x0b'
+#define MARKER3_BYTEARRAY '\x0c'
+#define MARKER3_AMF_PLUS	  '\x11' // Not supported 
+
+#define MARKER0_NUMBER		  '\x00'
+#define MARKER0_BOOLEAN		  '\x01'
+#define MARKER0_STRING  	  '\x02'
+#define MARKER0_OBJECT		  '\x03'
+#define MARKER0_CLIP		  '\x04'
+#define MARKER0_UNDEFINED  	  '\x05'
+#define MARKER0_NULL		  '\x06'
+#define MARKER0_REFERENCE 	  '\x07'
+#define MARKER0_ECMA_ARRAY 	  '\x08'
+#define MARKER0_OBJECT_END	  '\x09'
+#define MARKER0_STRICT_ARRAY	  '\x0a'
+#define MARKER0_DATE	  	  '\x0b'
+#define MARKER0_LONG_STRING       '\x0c'
+#define MARKER0_UNSUPPORTED	  '\x0d'
+#define MARKER0_RECORDSET	  '\x0e'
+#define MARKER0_XML_DOCUMENT      '\x0f'
+#define MARKER0_TYPED_OBJECT	  '\x10'
+#define MARKER0_AMF_PLUS	  '\x11' //not supported
 
 #define ERR_EOF 1
 #define ERR_REF 2
@@ -68,35 +101,6 @@
 #define AMF0 0
 #define AMF3 3
 
-#define MARKER3_UNDEF	'\x00'
-#define MARKER3_NULL	'\x01'
-#define MARKER3_FALSE	'\x02'
-#define MARKER3_TRUE	'\x03'
-#define MARKER3_INTEGER	'\x04'
-#define MARKER3_DOUBLE  '\x05'
-#define MARKER3_STRING  '\x06'
-#define MARKER3_ARRAY	'\x09'
-#define MARKER3_OBJECT	'\x0a'
-
-#define MARKER0_NUMBER		  '\x00'
-#define MARKER0_BOOLEAN		  '\x01'
-#define MARKER0_STRING  	  '\x02'
-#define MARKER0_OBJECT		  '\x03'
-#define MARKER0_CLIP		  '\x04'
-#define MARKER0_UNDEFINED  	  '\x05'
-#define MARKER0_NULL		  '\x06'
-#define MARKER0_REFERENCE 	  '\x07'
-#define MARKER0_ECMA_ARRAY 	  '\x08'
-#define MARKER0_OBJECT_END	  '\x09'
-#define MARKER0_STRICT_ARRAY  '\x0a'
-#define MARKER0_DATE	  	  '\x0b'
-#define MARKER0_LONG_STRING   '\x0c'
-#define MARKER0_UNSUPPORTED	  '\x0d'
-#define MARKER0_RECORDSET	  '\x0e'
-#define MARKER0_XML_DOCUMENT  '\x0f'
-#define MARKER0_TYPED_OBJECT  '\x10'
-#define MARKER0_AMF_PLUS	  '\x11'
-#define MARKER3_AMF_PLUS	  '\x11'
 
 #define STR_EMPTY    '\x01'
 #define TRACE(ELEM) PerlIO_printf( PerlIO_stderr(), ELEM);
@@ -524,6 +528,10 @@ inline void io_write_bytes(pTHX_ struct io_struct* io, const char * const buffer
     Copy(buffer, io->pos, len, char);
     io->pos+=len;
 }	
+// Date checking
+inline bool util_is_date(SV *one);
+inline double util_date_time(SV *one);
+
 inline void format_one(pTHX_ struct io_struct *io, SV * one);
 inline void format_number(pTHX_ struct io_struct *io, SV * one);
 inline void format_string(pTHX_ struct io_struct *io, SV * one);
@@ -532,6 +540,24 @@ inline void format_object(pTHX_ struct io_struct *io, HV * one);
 inline void format_null(pTHX_ struct io_struct *io);
 inline void format_typed_object(pTHX_ struct io_struct *io, HV * one);
 
+inline bool util_is_date(SV *one){
+    if (SvNOKp(one)){
+	HV* stash = SvSTASH(one);
+	char *class_name = HvNAME(stash);
+	if (*class_name == '*' && class_name[1] == 0){
+	    return 1;
+	}
+	else {
+	    return 0;
+	}
+    }
+    else {
+	return 0;
+    }
+}
+inline double util_date_time(SV *one){
+    return (SvNVX(one)*1000);
+}
 inline void format_reference(pTHX_ struct io_struct * io, SV *ref){
     io_write_marker(aTHX_  io, MARKER0_REFERENCE);
     io_write_u16(aTHX_  io, SvIV(ref));
@@ -571,7 +597,12 @@ inline void format_one(pTHX_ struct io_struct *io, SV * one){
                 if (SvTYPE(rv) == SVt_PVHV){
                     format_typed_object(aTHX_  io, (HV *) rv);
                 }
-                else {
+		else if ( util_is_date( rv ) ) {
+		    io_write_marker(aTHX_ io, MARKER0_DATE );
+		    io_write_double(aTHX_ io, util_date_time( rv ));
+		    io_write_s16(aTHX_ io, 0 );
+		}
+		else {		    
                     // may be i has to format as undef
                     io_register_error(io, ERR_BAD_OBJECT);
                 }
@@ -679,7 +710,7 @@ inline void format_typed_object(pTHX_ struct io_struct *io,  HV * one){
     HV* stash = SvSTASH(one);
     char *class_name = HvNAME(stash);
     io_write_marker(aTHX_  io, MARKER0_TYPED_OBJECT);
-    io_write_u16(aTHX_  io, strlen(class_name));
+    io_write_u16(aTHX_  io, (U16) strlen(class_name));
     io_write_bytes(aTHX_  io, class_name, strlen(class_name));
     format_object(aTHX_  io, one);
 }
@@ -1332,6 +1363,7 @@ inline SV * amf3_parse_date(pTHX_ struct io_struct *io){
     SV * RETVALUE;
     int i = amf3_read_integer(io);
     if (i&1){
+
         double x = io_read_double(io);
         RETVALUE = newSVnv(x);
         SvREFCNT_inc_simple_void_NN(RETVALUE);
@@ -1635,6 +1667,11 @@ STATIC_INLINE SV * amf3_parse_bytearray(pTHX_ struct io_struct *io){
     }
     return RETVALUE;
 }
+inline void amf3_format_date( pTHX_ struct io_struct *io, SV * one){
+    io_write_marker( aTHX_ io, MARKER3_DATE );
+    amf3_write_integer( aTHX_ io, 1 );
+    io_write_double( aTHX_ io, util_date_time( one ));
+}
 inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one);
 inline void amf3_format_integer(pTHX_ struct io_struct *io, SV *one){
 
@@ -1799,6 +1836,10 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
                 io_write_marker(aTHX_  io, MARKER3_OBJECT);
                 amf3_format_reference(aTHX_  io, *OK);
             }
+	    else if (util_is_date(rv)){
+		io_write_marker(aTHX_ io, MARKER3_OBJECT ); //#TODO
+		amf3_format_reference(aTHX_  io, *OK);
+	    }
             else {
                 io_register_error(io, ERR_BAD_OBJECT);
             }
@@ -1809,10 +1850,13 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
             ++io->rc_object;
 
             if (SvTYPE(rv) == SVt_PVAV) 
-            amf3_format_array(aTHX_  io, (AV*) rv);
+		amf3_format_array(aTHX_  io, (AV*) rv);
             else if (SvTYPE(rv) == SVt_PVHV) {
                 amf3_format_object(aTHX_  io, one);
             }
+	    else if (util_is_date( rv ) ){
+		amf3_format_date(aTHX_ io, rv );
+	    }
             else {
                 io->message = "bad type of object in stream";
                 io_register_error(io, ERR_BAD_OBJECT);
@@ -2345,5 +2389,40 @@ void freeze(data)
             SvIOK_on(ERRSV);
         }
 
+void
+new_date(NV timestamp )
+    PREINIT:
+    SV *mortal;
+    PROTOTYPE: $
+    ALIAS:
+	Storable::AMF::new_date=1
+	Storable::AMF0::new_date=2
+    PPCODE:
+	PERL_UNUSED_VAR( ix );
+	mortal=sv_newmortal();
+	sv_setref_nv( mortal, "*", timestamp ); //Stupid but it works
+	XPUSHs( mortal );
 
+void 
+perl_date(SV *date)
+    PREINIT:
+    SV *mortal;
+    PROTOTYPE: $
+    ALIAS: 
+	Storable::AMF::perl_date=1
+	Storable::AMF0::perl_date=2
+    PPCODE:
+	PERL_UNUSED_VAR( ix );
+	if ( SvROK( date ) && util_is_date( (SV*) SvRV(date))){
+	    XPUSHs((SV*) SvRV(date));
+	}
+	else if ( SvNOK( date )){
+	    mortal = sv_newmortal();
+	    sv_setnv( mortal, SvNV( date ) /1000);
+	    XPUSHs(mortal);
+	}
+
+	
+	
+	
 MODULE = Storable::AMF

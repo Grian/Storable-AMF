@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Fcntl qw(:flock);
 use Storable::AMF0;
-our $VERSION = '0.78';
+our $VERSION = '0.79';
 use vars qw/$OPT/;
 require Exporter;
 our @ISA = qw(Exporter);
@@ -16,7 +16,7 @@ our %EXPORT_TAGS = (
     'all' => [
         qw(
           freeze thaw	dclone retrieve lock_retrieve lock_store lock_nstore store nstore ref_lost_memory ref_clear
-          deparse_amf
+          deparse_amf new_date perl_date
           )
     ]
 );
