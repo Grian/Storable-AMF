@@ -2402,8 +2402,11 @@ new_amfdate(NV timestamp )
     SV *mortal;
     PROTOTYPE: $
     ALIAS:
-	Storable::AMF::new_amfdate=1
+	Storable::AMF::new_amfdate =1
 	Storable::AMF0::new_amfdate=2
+	Storable::AMF::new_date =3
+	Storable::AMF0::new_date=4
+	Storable::AMF3::new_date=5
     PPCODE:
 	PERL_UNUSED_VAR( ix );
 	mortal=sv_newmortal();

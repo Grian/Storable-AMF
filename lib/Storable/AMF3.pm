@@ -18,6 +18,7 @@ our %EXPORT_TAGS = (
           freeze thaw	dclone retrieve lock_retrieve lock_store lock_nstore store nstore
           ref_clear ref_lost_memory
           deparse_amf new_amfdate perl_date
+		  new_date
           )
     ]
 );

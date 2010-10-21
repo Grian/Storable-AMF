@@ -19,6 +19,7 @@ our %EXPORT_TAGS = (
           retrieve lock_retrieve lock_store lock_nstore store nstore
           ref_lost_memory ref_clear
           deparse_amf new_amfdate perl_date
+		  new_date
           )
     ]
 );
