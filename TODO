@@ -1,0 +1,8 @@
+    - realize readObject, CanRead, 
+    - Add descriptive error messages.
+    - more documentation on thaw ARRAY, XML
+    - Improve testleak for strings
+    - add limit memory behavior (Error message when no mem)
+    - max array opt
+    - Add remove eof checks for some options
+    - add examples

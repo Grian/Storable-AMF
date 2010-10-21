@@ -1,0 +1,281 @@
+package Storable::AMF0;
+use strict;
+use warnings;
+use Fcntl qw(:flock);
+our $VERSION = '0.78';
+use subs qw(freeze thaw);
+use Scalar::Util qw(refaddr reftype);    # for ref_circled
+
+require Exporter;
+use Carp qw(croak);
+our @ISA = qw(Exporter);
+
+# Items to export into callers namespace by default. Note: do not export
+# names by default without a very good reason. Use EXPORT_OK instead.
+# Do not simply export all your public functions/methods/constants.
+
+our %EXPORT_TAGS = (
+    'all' => [
+        qw(
+          freeze thaw	dclone
+          retrieve lock_retrieve lock_store lock_nstore store nstore
+          ref_lost_memory ref_clear
+          deparse_amf
+          )
+    ]
+);
+
+our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+
+our @EXPORT = qw();
+
+sub retrieve($) {
+    my $file = shift;
+    my $lock = shift;
+
+    open my $fh, "<:raw", $file or croak "Can't open file \"$file\" for read.";
+    flock $fh, LOCK_SH if $lock;
+    my $buf;
+    sysread $fh, $buf, (( sysseek $fh, 0, 2 ), sysseek $fh, 0,0)[0] ;
+    return thaw($buf);
+}
+
+sub lock_retrieve($) {
+    $_[1] = 1;
+    goto &retrieve;
+}
+
+sub store($$) {
+    my ( $object, $file, $lock ) = @_;
+
+    my $freeze = \freeze($object);
+    unless (defined $$freeze ){
+        croak "Bad object";
+    }
+    else  {
+	open my $fh, ">:raw", $file or croak "Can't open file \"$file\" for write.";
+        flock $fh, LOCK_EX if $lock;
+        print $fh $$freeze if defined $$freeze;
+    };
+}
+
+sub lock_store($$) {
+    $_[2] = 1;
+    goto &store;
+}
+{{
+    no warnings 'once';
+    *nstore = \&store;
+    *lock_nstore = \&lock_store;
+}};
+
+sub _ref_selfref($$);
+sub ref_lost_memory($);
+sub ref_clear($);
+
+sub _ref_selfref($$) {
+    my $obj_addr = shift;
+    my $value    = shift;
+    my $addr     = refaddr $value;
+    return unless defined $addr;
+    if ( reftype $value eq 'ARRAY' ) {
+
+        return $$obj_addr{$addr} if exists $$obj_addr{$addr};
+        $$obj_addr{$addr} = 1;
+        _ref_selfref( $obj_addr, $_ ) && return 1 for @$value;
+        $$obj_addr{$addr} = 0;
+    }
+    elsif ( reftype $value eq 'HASH' ) {
+
+        return $$obj_addr{$addr} if exists $$obj_addr{$addr};
+        $$obj_addr{$addr} = 1;
+        _ref_selfref( $obj_addr, $_ ) && return 1 for values %$value;
+        $$obj_addr{$addr} = 0;
+    }
+    else {
+        return;
+    }
+
+    return;
+}
+
+
+sub ref_clear($) {
+    my $ref = shift;
+    my %addr;
+    return unless ( refaddr $ref);
+    my @r;
+    if ( reftype $ref eq 'ARRAY' ) {
+        @r    = @$ref;
+        @$ref = ();
+        ref_clear($_) for @r;
+    }
+    elsif ( reftype $ref eq 'HASH' ) {
+        @r    = values %$ref;
+        %$ref = ();
+        ref_clear($_) for @r;
+    }
+}
+
+sub ref_lost_memory($) {
+    my $ref = shift;
+    my %obj_addr;
+    return _ref_selfref( \%obj_addr, $ref );
+}
+
+#~ sub dclone{
+#~ 	my $object = shift;
+#~ 	return thaw(treeze $_[0]);
+#~ }
+require XSLoader;
+XSLoader::load( 'Storable::AMF', $VERSION );
+
+#no strict 'refs';
+#*{"Storable::AMF0::$_"} = *{"Storable::AMF::$_"} for @{$EXPORT_TAGS{'all'}};
+
+# Preloaded methods go here.
+
+1;
+__END__
+# Below is stub documentation for your module. You'd better edit it!
+
+=head1 NAME
+
+Storable::AMF0 - serializing/deserializing AMF0 data
+
+=head1 SYNOPSIS
+
+  use Storable::AMF0 qw(freeze thaw); # or use Storable::AMF3 qw(freeze thaw) for AMF3 format
+
+  $amf0 = freeze($perl_object);
+  $perl_object = thaw($amf0);
+
+	
+  # Store/retrieve to disk amf0 data
+	
+  store $perl_object, 'file';
+  $restored_perl_object = retrieve 'file';
+
+
+  use Storable::AMF0 qw(nstore freeze thaw dclone);
+
+  # Network order: Due to spec of AMF0 format objects (hash, arrayref) stored in network order.
+  # and thus nstore and store are synonyms 
+
+  nstore \%table, 'file';
+  $hashref = retrieve('file'); 
+
+  
+  # Advisory locking
+  use Storable::AMF0 qw(lock_store lock_nstore lock_retrieve)
+  lock_store \%table, 'file';
+  lock_nstore \%table, 'file';
+  $hashref = lock_retrieve('file');
+
+  # Deparse one object
+  use Storable::AMF0 qw(deparse_amf); 
+
+  my( $obj, $length_of_packet ) = deparse_amf( my $bytea = freeze($a1) . freeze($a) ... );
+
+  - or -
+  $obj = deparse_amf( freeze($a1) . freeze($a) ... );
+
+=cut
+
+=head1 DESCRIPTION
+
+This module is (de)serializer for Adobe's AMF0/AMF3 (Action Message Format ver 0-3).
+This is only module and it recognize only AMF0 data. 
+Almost all function implemented in C for speed. 
+And some cases faster then Storable( for me always)
+
+=cut
+
+=head1 EXPORT
+  
+  None by default.
+
+=cut
+
+=head1 FUNCTIONS
+=cut
+
+=over
+
+=item freeze($obj) 
+  --- Serialize perl object($obj) to AMF0, and return AMF0 data
+
+=item thaw($amf0)
+  --- Deserialize AMF0 data to perl object, and return the perl object
+
+=item store $obj, $file
+  --- Store serialized AMF0 data to file
+
+=item nstore $obj, $file
+  --- Same as store
+
+=item retrieve $obj, $file
+  --- Retrieve serialized AMF0 data from file
+
+=item lock_store $obj, $file
+  --- Same as store but with Advisory locking
+
+=item lock_nstore $obj, $file
+  --- Same as lock_store 
+
+=item lock_retrieve $file
+  --- Same as retrieve but with advisory locking
+
+=item dclone $file
+  --- Deep cloning data structure
+
+=item ref_clear $obj
+  --- recurrent refs clearing . (Succefully destroy recurent objects with circular liks too)
+
+=item ref_lost_memory $obj
+  --- test if object contain lost memory fragments inside.
+  (Example do { my $a = []; @$a=$a; $a})
+
+=item deparse_amf $bytea 
+  --- deparse from bytea one item
+  Return one object and number of bytes readed
+  if scalar context return object
+
+=back
+
+=head1 NOTICE
+
+  Storable::AMF0 is currently is alpha development stage. 
+
+=cut
+=head1 NOTICE
+
+  Storable::AMF0 is currently at alpha development stage. 
+=cut
+
+=head1 LIMITATION
+
+At current moment and with restriction of AMF0/AMF3 format referrences to scalar are not serialized,
+and can't/ may not serialize tied variables.
+
+=head1 FEATURES
+
+	Due bug of Macromedia 'XML' type not serialized properly (it loose all atributes for AMF0) 
+	For AMF0 has to use XMLDocument type.
+
+=head1 SEE ALSO
+
+L<Data::AMF>, L<Storable>, L<Storable::AMF3>
+
+=head1 AUTHOR
+
+Anatoliy Grishaev, <grian at cpan dot org>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2010 by A. G. Grishaev
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.8 or,
+at your option, any later version of Perl 5 you may have available.
+=cut
