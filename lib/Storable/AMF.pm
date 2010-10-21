@@ -2,7 +2,6 @@ package Storable::AMF;
 use strict;
 use warnings;
 use Storable::AMF0; # install and create all methods
-our $VERSION = '0.80';
 use Exporter 'import';
 
 our %EXPORT_TAGS = (

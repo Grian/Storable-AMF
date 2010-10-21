@@ -76,7 +76,7 @@ sub ref_clear($);
 	my $my_package = __PACKAGE__ . "::";
 	for my $other_package ( "Storable::AMF::", "Storable::AMF3::" ){
 #	print STDERR "*{ $other_package$_ } = *{ $my_package$_}\n" for qw(ref_clear ref_lost_memory);
-		*{ $other_package . $_ } = *{ $my_package . $_} for qw(ref_clear ref_lost_memory);
+		*{ $other_package . $_ } = *{ $my_package . $_} for qw(ref_clear ref_lost_memory VERSION);
 	}
 	*{"Storable::AMF::$_"} = *{"Storable::AMF0::$_"} for grep m/retrieve|store/, @EXPORT_OK;
 }};
