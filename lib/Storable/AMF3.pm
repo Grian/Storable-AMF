@@ -5,6 +5,9 @@ use Fcntl qw(:flock);
 use subs qw(freeze thaw);
 use Exporter 'import';
 use Carp qw(croak);
+BEGIN{
+	our $VERSION='0.81';
+};
 use Storable::AMF0 ();
 
 # Items to export into callers namespace by default. Note: do not export
@@ -65,8 +68,6 @@ sub lock_store($$) {
     *nstore = \&store;
     *lock_nstore = \&lock_store;
 }};
-require XSLoader;
-XSLoader::load( 'Storable::AMF', $VERSION );
 1;
 __END__
 # Below is stub documentation for your module. You'd better edit it!

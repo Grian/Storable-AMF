@@ -25,8 +25,13 @@ if ( $] < MIN_PERL_VERSION  ) {
     exit(0);
 }
 
-copy( 'lib/Storable/AMF.xs',   cwd() );
-copy( 'lib/Storable/ppport.h', cwd() );
+for my $file ( 'lib/Storable/AMF.xs', 'lib/Storable/ppport.h', ){
+	my $un;
+	s/.*\/// for $un = $file;
+	unlink $un;
+	link $file, './'.$un and next;
+	copy( $file, '.' );
+};
 
 our %MyModule = (
     PREREQ_PM => { 

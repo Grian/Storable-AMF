@@ -1,6 +1,9 @@
 package Storable::AMF;
 use strict;
 use warnings;
+BEGIN{
+	our $VERSION='0.81';
+}
 use Storable::AMF0; # install and create all methods
 use Exporter 'import';
 

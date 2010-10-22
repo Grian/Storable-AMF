@@ -154,7 +154,6 @@ struct io_struct{
     int buffer_step_inc;
     char status;
     char * old_pos;
-//    jmp_buf target_error;
     Sigjmp_buf target_error;
     AV *arr_string;
     AV *arr_object;
@@ -310,8 +309,8 @@ inline void io_out_init(pTHX_ struct io_struct *io, SV* io_self, int amf3){
     unsigned int ibuf_step ;
     sbuffer = newSVpvn("",0);
     io->version = amf3;
-    ibuf_size = 255;
-    ibuf_step = 512;
+    ibuf_size = 10240;
+    ibuf_step = 20480;
     SvGROW(sbuffer, ibuf_size);
     io->sv_buffer = sbuffer;
     if (amf3) {

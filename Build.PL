@@ -25,9 +25,9 @@ my $builder = Module::Build->new(
     dist_name => 'Storable-AMF',
     license   => 'perl',
 
-    #  dist_abstract       => 'Use Win32 synchronization objects',
-    #  dist_author         => 'Christopher J. Madsen <perl@cjmweb.net>',
-    dist_version_from => 'lib/Storable/AMF.pm',
+    dist_abstract      => 'serializing/deserializing AMF0/AMF3 data',
+    dist_author       => 'Grishaev Anatoliy  <grian@cpan.org>',
+    dist_version_from => 'lib/Storable/AMF0.pm',
     requires          => {
         perl     => '5.8.0',
         XSLoader => 0,

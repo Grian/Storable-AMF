@@ -286,3 +286,9 @@ Revision history for Perl extension Storable::AMF.
 	-  perl_date add type check
 	-  some source refactor
 	-  add smoke tests for dates
+	-  Version check
+0.81		2010-10-22 11:25 +0400
+	- Fix Build.PL 
+	- Some regret for CPAN index problems
+	- Change some constant for buffer allocation.
+	- Convience fucks.
