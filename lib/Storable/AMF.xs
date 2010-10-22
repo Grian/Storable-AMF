@@ -1835,7 +1835,7 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
                 io_write_marker(aTHX_  io, MARKER3_OBJECT);
                 amf3_format_reference(aTHX_  io, *OK);
             }
-	    else if (util_is_date(rv)){
+	    else if (sv_isobject(one) && util_is_date(rv)){
 		io_write_marker(aTHX_ io, MARKER3_OBJECT ); //#TODO
 		amf3_format_reference(aTHX_  io, *OK);
 	    }
@@ -1853,7 +1853,7 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
             else if (SvTYPE(rv) == SVt_PVHV) {
                 amf3_format_object(aTHX_  io, one);
             }
-	    else if (util_is_date( rv ) ){
+	    else if (sv_isobject( one ) && util_is_date( rv ) ){
 		amf3_format_date(aTHX_ io, rv );
 	    }
             else {

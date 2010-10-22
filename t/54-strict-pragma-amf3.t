@@ -25,13 +25,6 @@ for my $item (@item){
 TEST_LOOP: for my $item (@item){
     my $packet = GrianUtils->read_pack($directory, $item);
     my ($image_amf3, $image_amf0, $eval) = @$packet{qw(amf3 amf0 eval)};
-	if ($eval =~m/use\s+utf8/) {
-		SKIP: {
-			no strict;
-			skip("utf8 convert is not supported mode", 1);
-		}
-	}
-	else {
 		no strict;
 		my $obj = eval $eval;
 		my $new_obj;
@@ -46,7 +39,6 @@ TEST_LOOP: for my $item (@item){
                 ok(1);
             }
         }
-	}
 }
 
 

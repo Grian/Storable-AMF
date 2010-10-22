@@ -6,28 +6,25 @@ use Storable::AMF0 qw(freeze thaw);
 use Data::Dumper;
 use Test::More tests=>4;
 my @r = ();
+my $x;
 
 
 eval{
-    thaw(undef);
+    $x = defined Storable::AMF0::thaw(undef);
 };
-ok($@);
+ok(!$x && $@);
 eval{
-    Storable::AMF3::thaw(undef);
+    $x = defined Storable::AMF3::thaw(undef);
 };
-ok($@);
+ok(!$x && $@);
 eval {
     my $s = chr(300);
-    #print Dumper($s, utf8::is_utf8($s), utf8::is_utf8(chr(15)));
-    Storable::AMF0::thaw(chr(300));
-    #print Dumper($@);
+    $x = defined Storable::AMF0::thaw(chr(300));
 };
-ok($@);
+ok(!$x && $@);
 eval {
     my $s = chr(300);
-    #print Dumper($s, utf8::is_utf8($s), utf8::is_utf8(chr(15)));
-    Storable::AMF0::thaw(chr(300));
-    #print Dumper($@);
+    $x = defined Storable::AMF0::thaw(chr(300));
 };
-ok($@);
+ok(!$x && $@);
 *{TODO} = *Test::More::TODO;

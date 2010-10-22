@@ -9,7 +9,7 @@ my $directory = qw(t/AMF0);
 my @item ;
 @item = GrianUtils->list_content($directory);
 
-my $total = @item*4;
+my $total = @item*8;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
 
@@ -26,13 +26,6 @@ TEST_LOOP: for my $item (@item){
     my $packet = GrianUtils->read_pack($directory, $item);
     my ($image_amf3, $image_amf0, $eval) = @$packet{qw(amf3 amf0 eval)};
 
-	if ($eval =~m/use\s+utf8/) {
-		SKIP: {
-			no strict;
-			skip("utf8 convert is not supported mode", 4);
-		}
-	}
-	else {
 		no strict;
 		
 		my $obj = eval $eval;
@@ -51,7 +44,12 @@ TEST_LOOP: for my $item (@item){
 		ok(! defined(thaw ($a2)), "fail of extra   ($item) $eval");
         ok($@, "has error for extra ".$eval);
 
-	}
+        $@=undef;
+		ok(! defined(Storable::AMF3::thaw ($a1)), "fail of trunked ($item) $eval");
+        ok($@, "has error for trunked".$eval);
+        $@= undef;
+		ok(! defined(Storable::AMF3::thaw ($a2)), "fail of extra   ($item) $eval");
+        ok($@, "has error for extra ".$eval);
 }
 
 

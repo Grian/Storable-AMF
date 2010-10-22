@@ -41,13 +41,6 @@ warn $@ if $@;
 TEST_LOOP: for my $item (@item){
     my $packet = GrianUtils->read_pack($directory, $item);
     my ($image_amf3, $image_amf0, $eval) = @$packet{qw(amf3 amf0 eval)};
-	if ($eval =~m/use\s+utf8/) {
-		SKIP: {
-			no strict;
-			skip("utf8 convert is not supported mode", 2);
-		}
-	}
-	else {
 		no strict;
 		
 		my $obj = eval $eval;
@@ -60,7 +53,6 @@ TEST_LOOP: for my $item (@item){
         
         ok(tt { my $a = thaw ( $a1 );},  "thaw $item extra - $msg");
         ok(tt { my $a = thaw ( $a2 );},  "thaw without one char $item - $msg");
-	}
 }
 
 
