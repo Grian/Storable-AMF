@@ -291,4 +291,4 @@ Revision history for Perl extension Storable::AMF.
 	- Fix Build.PL 
 	- Some regret for CPAN index problems
 	- Change some constant for buffer allocation.
-	- Convience fucks.
+	- Convience hacks.
