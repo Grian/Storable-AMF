@@ -2,7 +2,7 @@ use lib 't';
 use strict;
 use warnings;
 use ExtUtils::testlib;
-use Storable::AMF0 qw(freeze thaw retrieve);
+use Storable::AMF0 ();
 use GrianUtils;
 
 my $total;
@@ -15,7 +15,7 @@ my @item = split /,\s*/, $obj;
 
 
 @item = @item[0,1,2], ;
-$total = 4*@item;
+$total = 2*4*@item;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
 
@@ -27,9 +27,13 @@ foreach (@item){
 	ok(defined($image = Storable::AMF3::freeze($obj)), "freeze: $_");
 	ok(defined($new_obj = Storable::AMF3::thaw($image)), "defined thaw: $_");
 	
-	#print STDERR "#:", Data::Dumper->Dump([ unpack( "H*", $image), $new_obj]), "\n";
  	is_deeply($new_obj, $obj, "primitive: $_");
  	is(unpack( "H*", Storable::AMF3::freeze($new_obj)), unpack( "H*", $image), "test image: $_");
+
+	ok(defined($image = Storable::AMF0::freeze($obj)), "freeze: $_");
+	ok(defined($new_obj = Storable::AMF0::thaw($image)), "defined thaw: $_");
+ 	is_deeply($new_obj, $obj, "primitive: $_");
+ 	is(unpack( "H*", Storable::AMF0::freeze($new_obj)), unpack( "H*", $image), "test image: $_");
 }
 
 

@@ -28,12 +28,6 @@ my $a2 = []; @$a2=$a2;
 
 ok( ref_lost_memory($a2));
 
-ref_clear($a2);
-ref_clear("");
-ref_clear(1);
-ref_clear({});
-ref_clear([]);
-
 my $addr;
 my %c;
 for (1..20)
@@ -64,5 +58,3 @@ SKIP: {
     #ok(! tt { my @a; @a=(\@a, \@a, \(my $a='asdfa'), {}, ['asdfasd'], {asdf=>1}); 0} , "self ref $msg");
 }
 #ok(tt { my $a = { bbb=>123, adf=>[], }; return [{a=>1}, [123, qw(123), $a], a=>$a];},  );
-
-no warnings;

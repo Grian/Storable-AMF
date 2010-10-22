@@ -9,17 +9,9 @@ use Data::Dumper;
 my $directory = qw(t/AMF0);
 my @item ;
 @item = GrianUtils->list_content($directory);
-
-#@item = grep { /n_-?\ddd+$/ } @item;
-
-#print join "\n", @item;
-#@item = grep /complex/,@item;
 my $total = @item*4;
-#use Test::More tests => 16;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
-
-
 
 for my $item (@item){
 	my $form  = GrianUtils->read_pack($directory, $item);

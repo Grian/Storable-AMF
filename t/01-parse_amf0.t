@@ -8,17 +8,13 @@ use Data::Dumper;
 my $directory = qw(t/AMF0);
 my @item ;
 @item = GrianUtils->list_content($directory);
-
-#@item = grep { /n_-?\ddd+$/ } @item;
-
-#print join "\n", @item;
-#@item = grep /complex/,@item;
 my $total = @item*4;
-#use Test::More tests => 16;
+#1) defined freeze
+#2) defind  thaw freeze
+#3) is_deeply thaw freeze
+#4) is types are equal
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
-
-
 
 for my $item (@item){
 	my $form  = GrianUtils->read_pack($directory, $item);
@@ -28,9 +24,6 @@ for my $item (@item){
 	die $@ if $@;
 }
 TEST_LOOP: for my $item (@item){
-#~ 	my $image_amf3 = GrianUtils->my_readfile("$item.amf3");
-#~ 	my $image_amf0 = GrianUtils->my_readfile("$item.amf0");
-#~ 	my $eval  = GrianUtils->my_readfile("$item");
     my $packet = GrianUtils->read_pack($directory, $item);
     my ($image_amf3, $image_amf0, $eval) = @$packet{qw(amf3 amf0 eval)};
 	if ($eval =~m/use\s+utf8/) {
