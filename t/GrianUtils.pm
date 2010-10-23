@@ -11,8 +11,63 @@ use Data::Dumper;
 use warnings 'all';
 
 our (@EXPORT, @EXPORT_OK);
-@EXPORT_OK=qw(ref_mem_safe);
+@EXPORT_OK=qw(ref_mem_safe my_readdir my_readfile);
 
+use Carp qw(croak);
+#@$a = __PACKAGE__->my_items( 't/AMF0' );
+sub GrianUtils::my_items{
+	my $self = shift;
+	my $directory  = shift;
+	croak "GrianUtils::my_items list context required" unless wantarray;
+	my @dir_content ;
+	@dir_content = GrianUtils->my_readdir( ($directory) );
+	my %items;
+	my %values;
+	my %eval;
+	for (@dir_content){
+		m/.*\/(.*)\.(.*)/ and $items{ $1}{$2} = $_ or next;
+		my $val = $values{$1}{$2} = GrianUtils->my_readfile($_);
+	}
+	my @item =  map $items{$_}, sort keys %items;
+
+	# set name property
+	$_->{ (keys %$_)[0]} =~m/([-\.()\w]+)\./ and $_->{name} ||= $1 for @item;
+	! $values{$_->{name}} && warn "No name for '".$_->{ (keys %$_)[0]} ."'"for @item; 
+
+	#read package if ext is pack
+	for (@item){
+		if (keys %$_ == 2 && $_->{'pack'}){
+			my $val  =  $values{$_->{name}} or next;
+			%$_ = (%$_ , %{_unpack($val->{'pack'})});
+			$_->{dump} = $_->{eval} unless defined $_->{dump};
+		}
+		else {
+			my $item = $_;
+			$_ ne 'name' and $item->{$_} = $values{ $item->{name}}{$_} for keys %$item;
+		}
+	}
+	
+	@item  = grep { defined $_->{dump}} @item;
+
+	for my $item ( @item){
+		my $eval = $item->{dump}||=$item->{eval};
+		no strict;
+		$item->{obj} = eval $eval;
+		use strict;
+		$item->{eval} = $eval;
+		croak "$item->{name}: $@" if $@;
+		if ( defined $item->{xml} ){
+			$item->{eval_xml}  = $item->{xml};
+			$item->{obj_xml}   = eval $item->{xml};
+			croak "$item->{name}: $@" if $@;
+		}
+		else {
+			$item->{eval_xml} = $item->{eval};
+			$item->{obj_xml} = $item->{obj};
+		}
+	}
+	return @item;
+}
 sub hash_contain_only{
 	my $self = shift;
 	my $hash = shift;
@@ -21,33 +76,6 @@ sub hash_contain_only{
 	return 1;
 }
 	
-sub pg_encode_slow{
-	my $class = shift;
-	my $s = shift;
-	#~ $s =~ s/([\377\000])/"\377".unpack("H*",$1)/gse;
-	our %pg_encode;
-	$s=~s/([\000\377\376])/$pg_encode{$1}/gs;	
-	return $s;
-}
-sub pg_decode_slow{
-	my $class = shift;
-	my $s = shift;
-	our %pg_decode;
-	$s =~s/([\376]|(?:\377.))/$pg_decode{$1}/gs;
-	#~ $s =~s/\377(..)/pack("H*", $1)/gse;
-	return $s;
-}
-sub hex_encode{
-	my $class = shift;
-	my $s     = shift;
-	return unpack "H*", $s;
-}
-
-sub hex_decode{
-	my $class = shift;
-	my $s     = shift;
-	return pack "H*", $s;
-}
 
 sub my_readdir{
 	my $class = shift;
@@ -91,6 +119,7 @@ sub list_content{
     return sort grep { $_=~ $regex } keys %$folder;
 };
 
+BEGIN {
 our $pack = "(w/a)*";
 our @fixed_names = qw(eval amf0 amf3);
 sub _pack{
@@ -106,6 +135,7 @@ sub _unpack{
     (@fixed[0..$#fixed_names], %rest) = unpack $pack, $_[0];
     @rest{@fixed_names} = (@fixed);
     return \%rest;    
+};
 };
 
 sub read_pack{

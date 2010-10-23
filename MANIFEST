@@ -49,6 +49,7 @@ t/57-deparse-amf0.t
 t/58-deparse-amf3.t
 t/60-bug.t
 t/61-amf-date.t
+t/62-basic-ext.t
 t/AMF0/01-array-foo-bar-x2.pack
 t/AMF0/01-boolean-false.pack
 t/AMF0/01-boolean-true.pack
@@ -136,4 +137,6 @@ t/AMF0/utf8-00.pack
 t/AMF0/utf8-01.pack
 t/AMF0/utf8-02.pack
 t/AMF0/zero.pack
+t/AMF3/bug.amf3
+t/AMF3/bug.dump
 META.yml

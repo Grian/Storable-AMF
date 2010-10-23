@@ -8,23 +8,15 @@ use Data::Dumper;
 
 my $directory = qw(t/AMF0);
 my @item ;
-@item = GrianUtils->list_content($directory);
+@item = GrianUtils->my_items($directory);
+
 my $total = @item*4;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
 
-for my $item (@item){
-	my $form  = GrianUtils->read_pack($directory, $item);
-    my $eval = $form->{eval};
-	no strict;
-	eval $eval;
-	die $@ if $@;
-}
-TEST_LOOP: for my $item (@item){
-    my $packet = GrianUtils->read_pack($directory, $item);
-    my ($image_amf3, $image_amf0, $eval) = @$packet{qw(amf3 amf0 eval)};
 
-    $eval = $packet->{xml} if exists $$packet{xml};
+TEST_LOOP: for my $packet (@item){
+    my ($name, $image_amf3, $image_amf0, $obj, $eval) = @$packet{qw(name amf3 amf0  obj_xml eval_xml)};
 	if ($eval =~m/use\s+utf8/) {
 		SKIP: {
 			no strict;
@@ -32,16 +24,11 @@ TEST_LOOP: for my $item (@item){
 		}
 	}
 	else {
-		no strict;
-		
-		my $obj = eval $eval;
 		my $new_obj;
-		ok(defined(Storable::AMF3::freeze($obj)), "defined ($item) $eval");
-		ok(defined(Storable::AMF3::thaw(Storable::AMF3::freeze($obj)) xor not defined $obj), "full duplex $item");
-		is_deeply($new_obj = Storable::AMF3::thaw($image_amf3), $obj, "thaw name: ". $item. "(amf3):\n\n".$eval) 
+		ok(defined(Storable::AMF3::freeze($obj)), "defined ($name) $eval");
+		ok(defined(Storable::AMF3::thaw(Storable::AMF3::freeze($obj)) xor not defined $obj), "full duplex $name");
+		is_deeply($new_obj = Storable::AMF3::thaw($image_amf3), $obj, "thaw name: ". $name. "(amf3):\n\n") 
 		   or print STDERR Data::Dumper->Dump([$new_obj, $obj, unpack("H*", $image_amf3)]);
-		is(ref $new_obj, ref $obj, "type of: $item :: $eval");
+		is(ref $new_obj, ref $obj, "type of: $name :: $eval");
 	}
 }
-
-

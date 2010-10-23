@@ -20,66 +20,42 @@ sub tt(&){
 
 my $directory = qw(t/AMF0);
 my @item ;
-@item = GrianUtils->list_content($directory);
+@item = GrianUtils->my_items($directory);
 
 
-my @objs;
-my @recurrent;
-for my $item (@item){
-	my $packet  = GrianUtils->read_pack($directory, $item);
-    my $eval = $packet->{eval};
-    my $obj;
-	no strict;
-	$obj = eval $eval;
-	die $@ if $@;
-    push @recurrent, $item if ref_lost_memory($obj);
-    push @objs, $item, next if !ref_lost_memory($obj);
-}
+my @objs = grep !ref_lost_memory( $_->{obj} ), @item;;
+my @recurrent = grep ref_lost_memory( $_->{obj} ), @item;
 my $total = @item*1 + @objs*4 + @recurrent;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
 
 
+my ($name, $obj, $image_amf3, $image_amf0);
+sub get_item{
+	($name, $obj, $image_amf3, $image_amf0) = @{ $_[0] }{qw(name obj amf3 amf0 eval)};
+}
 TEST_LOOP: for my $item (@recurrent){
-    my $packet = GrianUtils->read_pack($directory, $item);
-    my ($image_amf3, $image_amf0, $eval) = @$packet{qw(amf3 amf0 eval)};
-		no strict;
-		my $obj = eval $eval;
-        use strict;
-        my $freeze = freeze $obj;        
-        
-        ok(tt { my $a = thaw $image_amf0, 1;; 1}, "thaw $item - $msg - recurrent");
+		get_item( $item );
+        ok(tt { my $a = thaw $image_amf0, 1;; 1}, "thaw $name - $msg - recurrent");
 };
 
 TEST_LOOP: for my $item (@item){
-    my $packet = GrianUtils->read_pack($directory, $item);
-    my ($image_amf3, $image_amf0, $eval) = @$packet{qw(amf3 amf0 eval)};
-		no strict;
-		
-		my $obj = eval $eval;
-        use strict;
-
+		get_item( $item );
         my $freeze = freeze $obj;        
         
         # ok(tt { my $a = thaw $image_amf0;ref_clear($a); 1}, "thaw destroy $item - $msg");
-        ok(tt { my $a = thaw( $image_amf0);ref_clear($a); 1}, "thaw(strict) destroy $item - $msg");
+        ok(tt { my $a = thaw( $image_amf0);ref_clear($a); 1}, "thaw(strict) destroy $name - $msg");
 }
 TEST_LOOP: for my $item (@objs){
-    my $packet = GrianUtils->read_pack($directory, $item);
-    my ($image_amf3, $image_amf0, $eval) = @$packet{qw(amf3 amf0 eval)};
-		no strict;
-		
-		my $obj = eval $eval;
-        use strict;
-
+		get_item( $item );
         my $freeze = freeze $obj;        
         my $a1 = $freeze;
         my $a2 = $freeze;
         
-        ok(tt { my $a = thaw $image_amf0; 1}, "thaw $item - $msg");
-        ok(tt { my $a = freeze $obj; 1},  "freeze $item - $msg");
-        ok(tt { my $a = thaw freeze $obj;$a = undef;1},  "thaw freeze $item - $msg");
-        ok(tt { my $a = freeze thaw $image_amf0;1 },  "freeze thaw $item - $msg");
+        ok(tt { my $a = thaw $image_amf0; 1}, "thaw $name - $msg");
+        ok(tt { my $a = freeze $obj; 1},  "freeze $name - $msg");
+        ok(tt { my $a = thaw freeze $obj;$a = undef;1},  "thaw freeze $name - $msg");
+        ok(tt { my $a = freeze thaw $image_amf0;1 },  "freeze thaw $name - $msg");
 }
 
 
