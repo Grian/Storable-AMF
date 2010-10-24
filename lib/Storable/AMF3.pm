@@ -6,7 +6,7 @@ use subs qw(freeze thaw);
 use Exporter 'import';
 use Carp qw(croak);
 BEGIN{
-	our $VERSION='0.81';
+	our $VERSION='0.84';
 };
 use Storable::AMF0 ();
 
@@ -21,6 +21,8 @@ our %EXPORT_TAGS = (
           ref_clear ref_lost_memory
           deparse_amf new_amfdate perl_date
 		  new_date
+		  parse_option
+		  parse_serializator_option
           )
     ]
 );

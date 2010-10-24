@@ -84,10 +84,11 @@
 #define ERR_RECURRENT_OBJECT 17
 #define ERR_BAD_REFVAL  18
 
-#define OPT_STRICT  1
-#define OPT_DECODE_UTF8  2
-#define OPT_ENCODE_UTF8  4
-#define OPT_ERROR_RAISE  8
+#define OPT_STRICT        1
+#define OPT_DECODE_UTF8   2
+#define OPT_ENCODE_UTF8   4
+#define OPT_ERROR_RAISE   8
+#define OPT_MILLSEC_DATE  16
 
 #define AMF0 0
 #define AMF3 3
@@ -921,7 +922,7 @@ STATIC_INLINE SV * parse_utf8(pTHX_ struct io_struct * io){
     char *x = io_read_chars(io, string_len);
     RETVALUE = newSVpvn(x, string_len);
     if (io->options & OPT_DECODE_UTF8)
-    SvUTF8_on(RETVALUE);
+	SvUTF8_on(RETVALUE);
 
     return RETVALUE;
 }
@@ -1149,7 +1150,10 @@ STATIC_INLINE SV* parse_date(pTHX_ struct io_struct *io){
     int tz;
     time = io_read_double(io);
     tz = io_read_s16(io);
-    RETVALUE = newSVnv(time);
+    if ( io->options & OPT_MILLSEC_DATE )
+	RETVALUE = newSVnv(time);
+    else 
+	RETVALUE = newSVnv(time/1000.0);
     av_push(io->refs, RETVALUE);
     SvREFCNT_inc_simple_void_NN(RETVALUE);
     return RETVALUE;
@@ -1162,7 +1166,7 @@ STATIC_INLINE SV* parse_long_string(pTHX_ struct io_struct *io){
 
     RETVALUE = newSVpvn(io_read_chars(io, len), len);
     if (io->options & OPT_DECODE_UTF8)
-    SvUTF8_on(RETVALUE);
+	SvUTF8_on(RETVALUE);
     return RETVALUE;
 }
 
@@ -1340,7 +1344,7 @@ STATIC_INLINE SV * amf3_parse_string(pTHX_ struct io_struct *io){
     pstr = amf3_read_string(aTHX_  io, ref_len, &plen);
     RETVALUE = newSVpvn(pstr, plen);
     if (io->options & OPT_DECODE_UTF8) 
-    SvUTF8_on(RETVALUE);
+	SvUTF8_on(RETVALUE);
     return RETVALUE;
 }
 STATIC_INLINE SV * amf3_parse_xml(pTHX_ struct io_struct *io);
@@ -1355,8 +1359,13 @@ inline SV * amf3_parse_date(pTHX_ struct io_struct *io){
     if (i&1){
 
         double x = io_read_double(io);
-        RETVALUE = newSVnv(x);
-        SvREFCNT_inc_simple_void_NN(RETVALUE);
+	if ( io->options & OPT_MILLSEC_DATE ){
+	    RETVALUE = newSVnv(x);
+	}
+	else {
+	    RETVALUE = newSVnv(x/1000.0);
+	};
+	SvREFCNT_inc_simple_void_NN(RETVALUE);
         av_push(io->arr_object, RETVALUE);
     }
     else {
@@ -1621,7 +1630,7 @@ STATIC_INLINE SV * amf3_parse_xml(pTHX_ struct io_struct *io){
         char *b = io_read_bytes(io, len);
         RETVALUE = newSVpvn(b, len);
         if (io->options & OPT_DECODE_UTF8)
-        SvUTF8_on(RETVALUE);
+	    SvUTF8_on(RETVALUE);
         SvREFCNT_inc_simple_void_NN(RETVALUE);
         av_push(io->arr_object, RETVALUE);
     }
@@ -2418,13 +2427,89 @@ perl_date(SV *date)
 	}
 	else if ( SvNOK( date )){
 	    mortal = sv_newmortal();
-	    sv_setnv( mortal, SvNV( date ) /1000);
+	    sv_setnv( mortal, SvNV( date ));
 	    XPUSHs(mortal);
 	}
 	else {
 	    croak("Expecting perl/amf date as argument" );
 	}
 
+void
+parse_option(char * s)
+    PREINIT: 
+    bool s_strict;
+    bool s_utf8_decode;
+    bool s_utf8_encode;
+    bool s_milldate;
+    bool s_raise_error;
+    char *word;
+    char *current;
+    bool error;
+    PROTOTYPE: $
+    ALIAS:
+    Storable::AMF::parse_option=1
+    Storable::AMF0::parse_option=2
+    Storable::AMF::parse_serializator_option=3
+    Storable::AMF3::parse_serializator_option=4
+    Storable::AMF0::parse_serializator_option=5
+    PPCODE:
+    PERL_UNUSED_VAR( ix );
+    s_strict = 0;
+    s_utf8_decode = 0;
+    s_utf8_encode = 0;
+    s_milldate    = 0;
+    s_raise_error = 0;
+    current = s;
+    for( ;*current && !isALPHA( *current ) ; ++current ); 
+
+    word = current;
+    while( *word ){
+	++current;
+	error = 0;
+	for( ; *current && ( isALNUM( *current ) || *current == '_' ); ++current );
+	switch( current - word ){
+	case 6:
+	    if (!strncmp("strict", word, 6)){
+		s_strict = 1;
+	    }
+	    else {
+		error = 1;
+	    };
+	    break;
+	case 11:
+	    if (!strncmp( "utf8_decode", word, 11)){
+		s_utf8_decode = 1;
+	    }
+	    else if (!strncmp( "utf8_encode", word, 11)){
+		s_utf8_encode = 1;
+	    }
+	    else if (!strncmp("raise_error", word, 9)){
+		s_raise_error=1;
+	    }
+	    else {
+		error = 1;
+	    }
+	    break;
+	case   16:
+	    if (!strncmp("millisecond_date", word, 16)){
+		s_milldate =1;
+	    }
+	    else 
+		error = 1;
+	    break;
+	default:
+	    error = 1;
+	};
+	if (error)
+	    croak("Storable::AMF0::parse_option: unknown option '%.*s'", current - word, word);
+
+	for(; *current && !isALPHA(*current); ++current);
+	word = current;
+    };	
+    mXPUSHi(   (s_strict ? OPT_STRICT : 0) + (s_milldate ? OPT_MILLSEC_DATE : 0) + \
+	    (s_utf8_decode? OPT_DECODE_UTF8:0) + (s_utf8_encode ? OPT_ENCODE_UTF8 : 0) +\
+	    (s_raise_error ? OPT_ERROR_RAISE : 0) \
+	    );
 	
 	
 	

@@ -2,7 +2,7 @@ package Storable::AMF;
 use strict;
 use warnings;
 BEGIN{
-	our $VERSION='0.81';
+	our $VERSION='0.84';
 }
 use Storable::AMF0; # install and create all methods
 use Exporter 'import';
@@ -13,6 +13,7 @@ our %EXPORT_TAGS = (
           freeze thaw	dclone retrieve lock_retrieve lock_store lock_nstore store nstore ref_lost_memory ref_clear
           deparse_amf new_amfdate perl_date
 		  new_date
+		  parse_serializator_option
           )
     ]
 );

@@ -20,8 +20,9 @@ use warnings;
 use Test::More qw(no_plan);                      # last test to print
 use ExtUtils::testlib;
 use Scalar::Util qw(blessed);
-use Storable::AMF0 qw(new_amfdate perl_date);
+use Storable::AMF0 qw(new_amfdate perl_date parse_option);
 use Storable::AMF3 ();
+use constant OLD_DATE_OPT => parse_option( 'millisecond_date' );
 
 ok( new_amfdate(0), "new_amfdate defined");
 ok( blessed new_amfdate(0), "new_amfdate blessed");
@@ -30,11 +31,11 @@ is( length Storable::AMF3::freeze( new_amfdate(0) ), 10, "length AMF0 date is 10
 is( unpack( "H*", Storable::AMF0::freeze(new_amfdate(0))), '0b00000000000000000000', 'freeze AMF0 date(0)',);
 is( unpack( "H*", Storable::AMF3::freeze(new_amfdate(0))), '08010000000000000000', 'freeze AMF3 date(0)',);
 
-TODO: {
-		  local $TODO="Will AMF0 parsing date";
-		  is( Storable::AMF0::thaw( Storable::AMF0::freeze( new_amfdate(1))), 1, "Date parse perlish AMF0");
-		  is( Storable::AMF3::thaw( Storable::AMF3::freeze( new_amfdate(1))), 1, "Date parse perlish AMF3");
-	  };
+is( Storable::AMF0::thaw( Storable::AMF0::freeze( new_amfdate(1)), OLD_DATE_OPT), 1000, "Date parse with option AMF0");
+is( Storable::AMF3::thaw( Storable::AMF3::freeze( new_amfdate(1)), OLD_DATE_OPT), 1000, "Date parse with option AMF3");
+
+is( Storable::AMF0::thaw( Storable::AMF0::freeze( new_amfdate(1))), 1, "Date parse perlish AMF0");
+is( Storable::AMF3::thaw( Storable::AMF3::freeze( new_amfdate(1))), 1, "Date parse perlish AMF3");
 
 my $timestamp = time();
 for (0, 1, 100, 100, $timestamp) {

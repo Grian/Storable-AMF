@@ -2,7 +2,7 @@ package Storable::AMF0;
 use strict;
 use warnings;
 use Fcntl qw(:flock);
-our $VERSION = '0.83';
+our $VERSION = '0.84';
 use subs qw(freeze thaw);
 use Scalar::Util qw(refaddr reftype);    # for ref_circled
 use Exporter 'import';
@@ -20,6 +20,8 @@ our %EXPORT_TAGS = (
           ref_lost_memory ref_clear
           deparse_amf new_amfdate perl_date
 		  new_date
+		  parse_option
+		  parse_serializator_option
           )
     ]
 );
