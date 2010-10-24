@@ -28,7 +28,6 @@ t/21-amf-strings.t
 t/22-array.t
 t/23-array-flash0.t
 t/24-anon-object.t
-t/25-typed-object.t
 t/30-can-AMF0.t
 t/31-can-AMF0.t
 t/32-can-AMF3.t

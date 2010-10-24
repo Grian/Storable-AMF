@@ -4,12 +4,13 @@ use warnings;
 use ExtUtils::testlib;
 use Storable::AMF0 ();
 use GrianUtils;
+use Data::Dumper;
 
 my $directory = qw(t/AMF0);
 my @item ;
 @item = grep $_->{name}=~m/^25-/, GrianUtils->my_items($directory);
 
-my $total = @item*3;
+my $total = @item*1;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
 
@@ -19,8 +20,6 @@ TEST_LOOP: for my $item (@item){
 	my $pob = $item->{obj};
 	
 	is_deeply(unpack("H*", Storable::AMF3::freeze( $pob)), unpack( "H*",$image_amf3), "name: ". $name);
-	is_deeply(Storable::AMF3::thaw($image_amf3), $pob, "thaw name: ". $name);
-	is_deeply(Storable::AMF0::thaw($image_amf0), $pob, "thaw name: ". $name);
 }
 
 

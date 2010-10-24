@@ -9,13 +9,17 @@ use List::Util qw(max);
 use base 'Exporter';
 use Data::Dumper;
 use warnings 'all';
+BEGIN{
+	no strict 'refs';
+	*{caller()."::".$_} = \&Data::Dumper::Dumper for 'Dumper'; #for tests
+}
 
 our (@EXPORT, @EXPORT_OK);
 @EXPORT_OK=qw(ref_mem_safe my_readdir my_readfile);
 
 use Carp qw(croak);
 #@$a = __PACKAGE__->my_items( 't/AMF0' );
-sub GrianUtils::my_items{
+sub my_items{
 	my $self = shift;
 	my $directory  = shift;
 	croak "GrianUtils::my_items list context required" unless wantarray;
@@ -68,14 +72,6 @@ sub GrianUtils::my_items{
 	}
 	return @item;
 }
-sub hash_contain_only{
-	my $self = shift;
-	my $hash = shift;
-	my $hash_compare = shift;
-	! exists $hash_compare->{$_} && return 0 foreach keys %$hash;
-	return 1;
-}
-	
 
 sub my_readdir{
 	my $class = shift;
@@ -110,43 +106,25 @@ sub my_readfile{
 	return $buf;
 }
 
-sub list_content{
-    my $class = shift;
-    my $dir   = shift;
-    my $regex = shift || qr/.*?/;
-    my $folder = $class->content($dir);
-    return () unless $folder;
-    return sort grep { $_=~ $regex } keys %$folder;
-};
-
 BEGIN {
-our $pack = "(w/a)*";
-our @fixed_names = qw(eval amf0 amf3);
-sub _pack{
-    my $hash = shift;
-    my (@fixed) = delete @$hash{@fixed_names};
-    #my $s = \ pack "N/aN/aN/a(N/aN/a)*", $eval, $amf0, $amf3, %$hash;    
-    my $s = \ pack $pack, @fixed, %$hash;    
-    @$hash{@fixed_names} = (@fixed);
-    return $$s;
-}
-sub _unpack{
-    my (@fixed, %rest);
-    (@fixed[0..$#fixed_names], %rest) = unpack $pack, $_[0];
-    @rest{@fixed_names} = (@fixed);
-    return \%rest;    
-};
+	our $pack = "(w/a)*";
+	our @fixed_names = qw(eval amf0 amf3);
+	sub _pack{
+		my $hash = shift;
+		my (@fixed) = delete @$hash{@fixed_names};
+		#my $s = \ pack "N/aN/aN/a(N/aN/a)*", $eval, $amf0, $amf3, %$hash;    
+		my $s = \ pack $pack, @fixed, %$hash;    
+		@$hash{@fixed_names} = (@fixed);
+		return $$s;
+	}
+	sub _unpack{
+		my (@fixed, %rest);
+		(@fixed[0..$#fixed_names], %rest) = unpack $pack, $_[0];
+		@rest{@fixed_names} = (@fixed);
+		return \%rest;    
+	};
 };
 
-sub read_pack{
-    my $class = shift;
-    my $dir   = shift;
-    my $name  = shift;
-    my $folder = $class->content($dir);
-    return  $$folder{$name};
-    print Dumper($$folder{$name}, _unpack(_pack($$folder{$name})));
-
-}
 sub create_pack{
     my $class = shift;
     my $dir   = shift;
@@ -167,52 +145,6 @@ sub create_pack{
     close($fh);            
 
 }
-
-sub content{
-    my $class = shift;
-    my $dir   = shift;
-    $dir=~s/[\/\\]$//;
-    our %dir;
-    return $dir{$dir} if $dir{$dir};
-    my @content = grep {-f $_ and -r $_ } grep { $_!~m/(?:^|(?:[\\\/]))\.{1,2}/ } $class->my_readdir($dir);
-    our %folder;
-   
-    my @name = grep { m/(?:amf0|pack)$/ } @content;
-    
-    for (@name){
-        $_=~s/\.(?:amf0|pack)$//;
-        m/(.*[\/\\])/; # basename
-        my $pos = $+[0];
-        my $sname = substr($_, $pos);
-        my $name = substr($_,0, $pos+length($sname));
-        my $ext;
-        my @c = grep { m/\Q$name.\E\w{2,}$/ } @content;
-        no warnings;
-
-        for (@c){
-            $ext = substr $_, ($pos + length($sname)+1);
-            my $f_content = $class->my_readfile($_);
-            $folder{$sname}{$ext}=$f_content; 
-        };
-        if (! exists $folder{$sname}{'pack'} ){
-            my $pack_name = $_.".pack";
-            delete $folder{$sname}{'pack'};
-
-            open my $fh, ">", $pack_name or die "can't create $pack_name";
-            binmode($fh);
-            print $fh _pack($folder{$sname});
-            close($fh);            
-        }
-        else {
-            my $packet  = $folder{$sname}{'pack'};
-            $folder{$sname} = _unpack($packet);
-            delete $folder{$sname}{'pack'};
-        }
-    };
-    $dir{$dir} = \%folder;
-    return \%folder;
-}
-
 
 
 sub abs2rel{

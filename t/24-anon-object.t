@@ -4,7 +4,8 @@ use warnings;
 use ExtUtils::testlib;
 use Storable::AMF0 qw(freeze thaw);
 use GrianUtils;
-use constant test_per_item=>4;
+use Data::Dumper;
+use constant test_per_item=>2;
 
 my $directory = qw(t/AMF0);
 my @item ;
@@ -19,8 +20,6 @@ TEST_LOOP: for my $item (@item){
 	my $new_obj;
 	is_deeply(unpack("H*", Storable::AMF3::freeze($obj)), unpack( "H*",$image_amf3), "name: ". $name);
 	is_deeply(unpack("H*", Storable::AMF0::freeze($obj)), unpack( "H*",$image_amf0), "name: ". $name);
-	is_deeply($new_obj = Storable::AMF3::thaw($image_amf3), $obj, "thaw name: ". $name);
-	is_deeply($new_obj = Storable::AMF0::thaw($image_amf0), $obj, "thaw name: ". $name);
 }
 
 

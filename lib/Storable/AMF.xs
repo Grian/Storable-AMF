@@ -20,8 +20,6 @@
 #   endif
 #endif /* STATIC_INLINE */
 
-
-
 #ifndef inline /* don't like borgs definitions */ /* inline is keyword for STDC compiler  */
 #   if defined(__GNUC__) || defined(__cplusplus__) || (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L))
 #   else
@@ -32,13 +30,6 @@
 #	endif
 #   endif
 #endif /* inline  */
-
-// Blin Strawberry perl for Win32 for setjmp macros 
-// #ifdef WIN32
-// #undef setjmp
-// #undef longjmp
-// #define setjmp _setjmp
-// #endif
 
 #define MARKER3_UNDEF	  '\x00'
 #define MARKER3_NULL	  '\x01'
