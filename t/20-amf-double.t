@@ -19,7 +19,7 @@ foreach (@item){
 	my $obj = eval $_;
 	my $new_obj;
 
-	ok(defined($image = Storable::AMF3::freeze($obj)), "freeze: $_");
+	ok(defined($image   = Storable::AMF3::freeze($obj)), "freeze: $_");
 	ok(defined($new_obj = Storable::AMF3::thaw($image)), "defined thaw: $_");
 
 	is($new_obj, $obj, "primitive: $_");

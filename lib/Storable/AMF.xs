@@ -619,7 +619,7 @@ inline void format_one(pTHX_ struct io_struct *io, SV * one){
     else {
         if (SvOK(one)){
 	    #if defined( EXPERIMENT1 )
-	    if (! (io->options & OPT_PREFER_NUMBER )){
+	    if ( (io->options & OPT_PREFER_NUMBER )){
 		if (SvNOK(one)){
 		    format_number(aTHX_  io, one);
 		}
