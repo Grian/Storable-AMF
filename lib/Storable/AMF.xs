@@ -89,6 +89,9 @@
 #define OPT_ENCODE_UTF8   4
 #define OPT_ERROR_RAISE   8
 #define OPT_MILLSEC_DATE  16
+#define OPT_PREFER_NUMBER 32
+
+#define EXPERIMENT1
 
 #define AMF0 0
 #define AMF3 3
@@ -615,6 +618,18 @@ inline void format_one(pTHX_ struct io_struct *io, SV * one){
     }
     else {
         if (SvOK(one)){
+	    #if defined( EXPERIMENT1 )
+	    if (! (io->options & OPT_PREFER_NUMBER )){
+		if (SvNOK(one)){
+		    format_number(aTHX_  io, one);
+		}
+		else {
+		    format_string(aTHX_  io, one);
+		}
+	    }
+	    else 
+	    #endif
+		    
             if (SvPOK(one)){
                 format_string(aTHX_  io, one);
             }
@@ -2199,10 +2214,10 @@ deparse_amf(SV *data, ...)
 
 
 
-void freeze(SV *data)
+void freeze(SV *data, ... )
     ALIAS:
 	Storable::AMF::freeze=1
-    PROTOTYPE: $
+    PROTOTYPE: $;$
     INIT:
         SV * retvalue;
         SV * io_self;
@@ -2213,6 +2228,17 @@ void freeze(SV *data)
         io_self= newSV(0);
         sv_2mortal(io_self);
         io_out_init(aTHX_  &io_record, 0, AMF0);
+        if (1 == items){
+            io_record.options = 0;
+        }
+        else {
+            SV * opt = ST(1);
+            if (! SvIOK(opt)){
+                warn( "invalid options." );
+                return ;
+            };
+            io_record.options = SvIV(opt);
+        };
         if (!(error_code = Sigsetjmp(io_record.target_error, 0))){
             format_one(aTHX_  &io_record, data);
             retvalue = sv_2mortal(io_buffer(&io_record));
@@ -2247,8 +2273,7 @@ deparse_amf(data, ...)
         else {
             SV * opt = ST(1);
             if (! SvIOK(opt)){
-                sv_dump(opt);
-                warn( "options are not integer" );
+                warn( "invalid options: " );
                 return ;
             };
             io_record.options = SvIV(opt);
@@ -2371,7 +2396,7 @@ endian()
 
 void freeze(data)
     SV * data
-    PROTOTYPE: $
+    PROTOTYPE: $;$
     INIT:
         SV * retvalue;
         SV * io_self;
@@ -2442,6 +2467,7 @@ parse_option(char * s)
     bool s_utf8_encode;
     bool s_milldate;
     bool s_raise_error;
+    int options;
     char *word;
     char *current;
     bool error;
@@ -2459,6 +2485,7 @@ parse_option(char * s)
     s_utf8_encode = 0;
     s_milldate    = 0;
     s_raise_error = 0;
+    options       = 0;
     current = s;
     for( ;*current && !isALPHA( *current ) ; ++current ); 
 
@@ -2490,6 +2517,14 @@ parse_option(char * s)
 		error = 1;
 	    }
 	    break;
+	case 13:
+	    if (!strncmp( "prefer_number", word, 13)){
+		options |= OPT_PREFER_NUMBER;
+	    }
+	    else {
+		error = 1;
+	    };
+	    break;
 	case   16:
 	    if (!strncmp("millisecond_date", word, 16)){
 		s_milldate =1;
@@ -2506,8 +2541,8 @@ parse_option(char * s)
 	for(; *current && !isALPHA(*current); ++current);
 	word = current;
     };	
-    mXPUSHi(   (s_strict ? OPT_STRICT : 0) + (s_milldate ? OPT_MILLSEC_DATE : 0) + \
-	    (s_utf8_decode? OPT_DECODE_UTF8:0) + (s_utf8_encode ? OPT_ENCODE_UTF8 : 0) +\
+    mXPUSHi(  options | (s_strict ? OPT_STRICT : 0) | (s_milldate ? OPT_MILLSEC_DATE : 0) | \
+	    (s_utf8_decode? OPT_DECODE_UTF8:0) | (s_utf8_encode ? OPT_ENCODE_UTF8 : 0) |\
 	    (s_raise_error ? OPT_ERROR_RAISE : 0) \
 	    );
 	

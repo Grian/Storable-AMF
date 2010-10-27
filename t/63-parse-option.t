@@ -3,7 +3,7 @@ use ExtUtils::testlib;
 use Storable::AMF0 qw(parse_option);
 use Data::Dumper;
 
-my $total = 4+5*2+2 + 4;
+my $total = 4+ 6 + 5+2 + 4;
 #*CORE::GLOBAL::caller = sub { CORE::caller($_[0] + $Carp::CarpLevel + 1) }; 
 use warnings;
 eval "use Test::More tests=>$total;";
@@ -21,6 +21,7 @@ is( parse_option('utf8_decode'), 2, "parse utf8_decode==2");
 is( parse_option('utf8_encode'), 4, "parse utf8_encode=4");
 is( parse_option('raise_error'), 8, "parse raise_error==8");
 is( parse_option('millisecond_date'), 16, "parse millisecond_date==16");
+is( parse_option('prefer_number'), 32, "parse prefer_number==32");
 
 is( parse_option(' strict'), 1, "-parse strict==1");
 is( parse_option('& utf8_decode'), 2, "-parse utf8_decode==2");
