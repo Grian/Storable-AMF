@@ -6,7 +6,8 @@ use subs qw(freeze thaw);
 use Exporter 'import';
 use Carp qw(croak);
 BEGIN{
-	our $VERSION='0.84';
+	our $VERSION;
+	$VERSION='0.84' unless $INC{'Storable/AMF0.pm'};
 };
 use Storable::AMF0 ();
 
