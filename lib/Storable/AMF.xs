@@ -620,7 +620,7 @@ inline void format_one(pTHX_ struct io_struct *io, SV * one){
         if (SvOK(one)){
 	    #if defined( EXPERIMENT1 )
 	    if ( (io->options & OPT_PREFER_NUMBER )){
-		if (SvNOK(one)){
+		if (SvNIOK(one)){
 		    format_number(aTHX_  io, one);
 		}
 		else {
@@ -629,13 +629,12 @@ inline void format_one(pTHX_ struct io_struct *io, SV * one){
 	    }
 	    else 
 	    #endif
-		    
-            if (SvPOK(one)){
-                format_string(aTHX_  io, one);
-            }
-            else {
-                format_number(aTHX_  io, one);
-            }
+		if (SvPOK(one)){
+		    format_string(aTHX_  io, one);
+		}
+		else {
+		    format_number(aTHX_  io, one);
+		}
         }
         else {
             format_null(aTHX_  io);
