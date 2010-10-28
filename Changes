@@ -314,6 +314,8 @@ Revision history for Perl extension Storable::AMF.
 	- test for "utf8_decode", "millisecond_date"
 	- remove all "skipped utf8 tests"
 
+0.85	       2010-10-25 23:40 +0400
+	- try please automated tests
 
-0.85	       2010-10-26 23:45 +0400
+0.86	       2010-10-26 23:45 +0400
 	- prefer number option added (experimental)
