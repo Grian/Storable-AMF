@@ -1878,15 +1878,34 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
     }
     else {
         if (SvOK(one)){
+	    #if defined( EXPERIMENT1 )
+	    if ( (io->options & OPT_PREFER_NUMBER )){
+		if (SvNIOK(one)){
+		    if ( SvIOK( one ) ){
+			amf3_format_integer(aTHX_ io, one );
+		    }
+		    else {
+			amf3_format_double(aTHX_  io, one);
+		    }
+		}
+		else {
+		    amf3_format_string(aTHX_  io, one);
+		}
+	    }
+	    else 
+	    #endif
             if (SvPOK(one)) {
                 amf3_format_string(aTHX_  io, one);
             } else 
-            if (SvIOKp(one)){
+            if (SvIOK(one)){
                 amf3_format_integer(aTHX_  io, one);
             }
-            else if (SvNOKp(one)){
+            else if (SvNOK(one)){
                 amf3_format_double(aTHX_  io, one);
             }
+	    else {
+		io_register_error(io, ERR_BAD_OBJECT );
+	    }
         }
         else {
             amf3_format_null(aTHX_  io);
@@ -2393,7 +2412,7 @@ endian()
     PPCODE:
     PerlIO_printf(PerlIO_stderr(), "%s %x\n", GAX, BYTEORDER);
 
-void freeze(data)
+void freeze(data, int opts=0)
     SV * data
     PROTOTYPE: $;$
     INIT:
@@ -2404,6 +2423,7 @@ void freeze(data)
     PPCODE:
         io_self= newSV(0);
         io_out_init(aTHX_  &io_record, 0, AMF3);
+	io_record.options = opts;
         if (!(error_code = Sigsetjmp(io_record.target_error, 0))){
             amf3_format_one(aTHX_  &io_record, data);
             sv_2mortal(io_self);

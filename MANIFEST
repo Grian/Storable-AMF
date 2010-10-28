@@ -51,6 +51,7 @@ t/61-amf-date.t
 t/62-basic-ext.t
 t/63-parse-option.t
 t/64-prefer-number.t
+t/65-prefer-number3.t
 t/AMF0/01-array-foo-bar-x2.pack
 t/AMF0/01-boolean-false.pack
 t/AMF0/01-boolean-true.pack
