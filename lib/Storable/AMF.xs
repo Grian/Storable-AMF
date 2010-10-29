@@ -135,6 +135,134 @@ struct amf3_restore_point{
     int offset_string;
 };
 
+// deep_sub
+
+struct deep_walk; 
+typedef void (*deep_callback_t)( struct deep_walk *, SV *);
+typedef struct deep_walk{
+    HV *addresses;    
+    SV *mortal1;
+    SV *mortal2;
+    SV *mortal3;
+    int *refcounts;
+    SV **sv_array;
+    int sv_array_len;
+    
+    deep_callback_t callback;
+} *deep;
+
+void deep_init(deep a){
+    dTHX;
+    a->addresses = newHV();
+    sv_2mortal( (SV *) a->addresses );
+
+
+    // sv_array
+    a->mortal1 = sv_newmortal();
+    sv_setpvn(a->mortal1, "", 0);
+    SvGROW( a->mortal1, 10240 *sizeof(SV*));
+    a->sv_array = (SV **)SvPVX(a->mortal1);
+    a->sv_array_len = 0;
+
+    // refcounts
+    a->mortal2 = sv_newmortal();
+    sv_setpvn(a->mortal2, "", 0);
+    SvGROW( a->mortal2, 10240 *sizeof(int));
+    a->refcounts = (int *)SvPVX(a->mortal2);     
+
+
+
+    a->mortal3 = sv_newmortal();
+    sv_setpvn(a->mortal3, "", 0);
+    SvGROW( a->mortal3, 10240 );
+    
+}
+
+void deep_double_cb(deep pf, SV *data){
+    dTHX;
+    if (SvNIOK(data)){
+	sv_catpvf( pf->mortal3, "%" NVgf " ", SvNV(data));
+    }
+}
+
+void deep_insert_cb(deep pf, SV *data){
+    SV **result;
+    dTHX;
+    result = hv_fetch(pf->addresses, (char *)&data, sizeof(&data), 1);
+    if ( result ){
+	if (SvOK(*result)){
+	    sv_inc(*result );	    
+	}
+	else {
+	    sv_setiv(*result, 1);
+	    pf->sv_array[pf->sv_array_len] = data;
+	    pf->refcounts[pf->sv_array_len++] = SvREFCNT(data);
+	}
+    }
+    else {
+	croak("Unexpected happen");
+    }
+}
+
+void deep_print_content(deep pf){
+    dTHX;
+    int i;
+    for( i=0; i<pf->sv_array_len; ++i){
+	SV *data = pf->sv_array[ i ];
+	SV **result;
+	result = hv_fetch( pf->addresses, (char*)(&data), sizeof(&data), 0);
+	fprintf( stderr, "p=%p SvTYPE(sv)=%d REFCNT=%d/"IVdf"\n", data, SvTYPE(data), pf->refcounts[ i ], SvIV(*result));
+    }
+    fprintf( stderr, "=END=\n");
+};
+
+
+
+void 
+deep_walk_imp(deep pf, SV *data){
+    dTHX;
+    if (0 && hv_exists(pf->addresses, (char *) data, sizeof(data)))
+	return ;
+
+    if (SvROK(data)){
+        SV * rv = (SV*) SvRV(data);
+	pf->callback(pf, rv);
+        if ( SvTYPE(rv) == SVt_PVAV ){
+            int alen;
+            SV **aitem;
+            int i;
+
+            alen = av_len( (AV*)rv );
+            for ( i=0; i<= alen ;++i ){
+                aitem = av_fetch( (AV *) rv , i, 0);
+                if (aitem){
+		    deep_walk_imp( pf, *aitem );
+                }
+            }
+        }
+        else if ( SvTYPE(rv) == SVt_PVHV ){
+            STRLEN key_len;
+            HV *hv;
+            HE *he;
+            SV * value;
+            char * key_str;
+            hv = (HV *) rv;
+            hv_iterinit(hv);
+            while(  (he = hv_iternext(hv)) ){
+                key_str = HePV( he, key_len);
+                value = HeVAL( he );
+                deep_walk_imp( pf, value );
+            }
+        }
+        else {
+            deep_walk_imp( pf, rv );
+        }
+    }
+    else {
+	pf->callback(pf, data);
+    }
+}
+// END DEEP
 
 struct io_struct{
     unsigned char * ptr;
@@ -2565,6 +2693,32 @@ parse_option(char * s)
 	    (s_raise_error ? OPT_ERROR_RAISE : 0) \
 	    );
 	
-	
+MODULE = Storable::AMF PACKAGE = RefCount
+void
+show_double(SV *data)
+    PREINIT:
+    struct deep_walk f;
+    ALIAS:
+    PPCODE:
+	PERL_UNUSED_ARG( ix );
+	deep_init( &f );
+	f.callback = deep_double_cb;
+	deep_walk_imp( &f, data);
+	sv_catpvf(f.mortal3, "\n");
+	XPUSHs( f.mortal3 );
+
+
+#void 
+#show(SV *data)
+#    PREINIT:
+#    struct deep_walk f;
+#    ALIAS:
+#    main::show=1
+#    PPCODE:
+#	PERL_UNUSED_ARG(ix);
+#	deep_init( &f );
+#	f.callback = deep_insert_cb;
+#	deep_walk_imp( &f, data);
+#	deep_print_content( &f );
 	
 MODULE = Storable::AMF
