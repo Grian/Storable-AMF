@@ -29,7 +29,7 @@ sub my_items{
 	my %values;
 	my %eval;
 	for (@dir_content){
-		m/.*\/(.*)\.(.*)/ and $items{ $1}{$2} = $_ or next;
+		m/.*[\/\\](.*)\.(.*)/ and $items{ $1}{$2} = $_ or next;
 		my $val = $values{$1}{$2} = GrianUtils->my_readfile($_);
 	}
 	my @item =  map $items{$_}, sort keys %items;
