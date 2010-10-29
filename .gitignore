@@ -6,4 +6,7 @@ Makefile
 Makefile.old
 AMF.c
 ppport.h
+Build
+MYMETA.yml
+_build
 *.tar.gz
