@@ -2413,10 +2413,9 @@ endian()
     PPCODE:
     PerlIO_printf(PerlIO_stderr(), "%s %x\n", GAX, BYTEORDER);
 
-void freeze(data, int opts=DEFAULT_MASK)
-    SV * data
+void freeze(SV *data, int opts=DEFAULT_MASK)
     PROTOTYPE: $;$
-    INIT:
+    PREINIT:
         SV * retvalue;
         SV * io_self;
         struct io_struct io_record;
