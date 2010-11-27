@@ -126,6 +126,8 @@
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 
+#define SIGN_BOOL_APPLY( obj, sign, mask ) ( sign > 0 ? obj|=mask : sign <0 ? obj&=~mask : 0 ) 
+#define DEFAULT_MASK OPT_PREFER_NUMBER
 
 //#define TRACE0
 struct amf3_restore_point{
@@ -2607,18 +2609,19 @@ perl_date(SV *date)
 	}
 
 void
-parse_option(char * s)
+parse_option(char * s, int options=0)
     PREINIT: 
-    bool s_strict;
-    bool s_utf8_decode;
-    bool s_utf8_encode;
-    bool s_milldate;
-    bool s_raise_error;
-    int options;
+    I8 s_strict;
+    I8 s_utf8_decode;
+    I8 s_utf8_encode;
+    I8 s_milldate;
+    I8 s_raise_error;
+    I8 s_prefer_number;
+    I8 sign;
     char *word;
     char *current;
     bool error;
-    PROTOTYPE: $
+    PROTOTYPE: $;$
     ALIAS:
     Storable::AMF::parse_option=1
     Storable::AMF0::parse_option=2
@@ -2632,19 +2635,28 @@ parse_option(char * s)
     s_utf8_encode = 0;
     s_milldate    = 0;
     s_raise_error = 0;
+    s_prefer_number = 0;
     options       = 0;
     current = s;
-    for( ;*current && !isALPHA( *current ) ; ++current ); 
+    for( ;*current && ( !isALPHA( *current ) && *current!='+' && *current!='-' ) ; ++current ); 
 
     word = current;
     while( *word ){
 	++current;
 	error = 0;
+	sign  = 1;
+	if ( *word == '+' ){
+	    ++word;
+	}
+	else if ( *word =='-' ){
+	    sign = -1;
+	    ++word;
+	}
 	for( ; *current && ( isALNUM( *current ) || *current == '_' ); ++current );
 	switch( current - word ){
 	case 6:
 	    if (!strncmp("strict", word, 6)){
-		s_strict = 1;
+		s_strict = sign;
 	    }
 	    else {
 		error = 1;
@@ -2652,13 +2664,13 @@ parse_option(char * s)
 	    break;
 	case 11:
 	    if (!strncmp( "utf8_decode", word, 11)){
-		s_utf8_decode = 1;
+		s_utf8_decode = sign;
 	    }
 	    else if (!strncmp( "utf8_encode", word, 11)){
-		s_utf8_encode = 1;
+		s_utf8_encode = sign;
 	    }
 	    else if (!strncmp("raise_error", word, 9)){
-		s_raise_error=1;
+		s_raise_error=sign;
 	    }
 	    else {
 		error = 1;
@@ -2666,15 +2678,15 @@ parse_option(char * s)
 	    break;
 	case 13:
 	    if (!strncmp( "prefer_number", word, 13)){
-		options |= OPT_PREFER_NUMBER;
+		s_prefer_number = sign;
 	    }
 	    else {
-		error = 1;
+		error = sign;
 	    };
 	    break;
 	case   16:
 	    if (!strncmp("millisecond_date", word, 16)){
-		s_milldate =1;
+		s_milldate = sign;
 	    }
 	    else 
 		error = 1;
@@ -2685,13 +2697,16 @@ parse_option(char * s)
 	if (error)
 	    croak("Storable::AMF0::parse_option: unknown option '%.*s'", current - word, word);
 
-	for(; *current && !isALPHA(*current); ++current);
+	for(; *current && !isALPHA(*current) && *current!='+' && *current!='-'; ++current);
 	word = current;
     };	
-    mXPUSHi(  options | (s_strict ? OPT_STRICT : 0) | (s_milldate ? OPT_MILLSEC_DATE : 0) | \
-	    (s_utf8_decode? OPT_DECODE_UTF8:0) | (s_utf8_encode ? OPT_ENCODE_UTF8 : 0) |\
-	    (s_raise_error ? OPT_ERROR_RAISE : 0) \
-	    );
+    SIGN_BOOL_APPLY( options, s_strict,   OPT_STRICT );
+    SIGN_BOOL_APPLY( options, s_milldate, OPT_MILLSEC_DATE );
+    SIGN_BOOL_APPLY( options, s_utf8_decode, OPT_DECODE_UTF8 );
+    SIGN_BOOL_APPLY( options, s_utf8_encode, OPT_ENCODE_UTF8 );
+    SIGN_BOOL_APPLY( options, s_raise_error, OPT_ERROR_RAISE );
+    SIGN_BOOL_APPLY( options, s_prefer_number, OPT_PREFER_NUMBER );
+    mXPUSHi(  options ); 
 	
 MODULE = Storable::AMF PACKAGE = RefCount
 void
