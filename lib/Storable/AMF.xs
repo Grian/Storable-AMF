@@ -87,7 +87,7 @@
 #define OPT_STRICT        1
 #define OPT_DECODE_UTF8   2
 #define OPT_ENCODE_UTF8   4
-#define OPT_ERROR_RAISE   8
+#define OPT_RAISE_ERROR   8
 #define OPT_MILLSEC_DATE  16
 #define OPT_PREFER_NUMBER 32
 
@@ -2258,7 +2258,7 @@ thaw(SV *data, ...)
             if ((error_code = Sigsetjmp(io_record.target_error, 0)) ){
                 //croak("Failed parse string. unspected EOF");
                 //TODO: ERROR CODE HANDLE
-                if (io_record.options & OPT_ERROR_RAISE){
+                if (io_record.options & OPT_RAISE_ERROR){
                     croak("Error at parse AMF0 (%d)", error_code);
                 }
                 else {
@@ -2272,7 +2272,7 @@ thaw(SV *data, ...)
                 retvalue = (SV*) (parse_one(aTHX_  &io_record));
                 retvalue = sv_2mortal(retvalue);
                 if (io_record.pos!=io_record.end){
-                    if (io_record.options & OPT_ERROR_RAISE){
+                    if (io_record.options & OPT_RAISE_ERROR){
                         croak("EOF at parse AMF0 (%d)", ERR_EXTRA_BYTE);
                     }
                     else {
@@ -2344,7 +2344,7 @@ deparse_amf(SV *data, ...)
             else {
                 //croak("Failed parse string. unspected EOF");
                 //TODO: ERROR CODE HANDLE
-                if (io_record.options & OPT_ERROR_RAISE){
+                if (io_record.options & OPT_RAISE_ERROR){
                     croak("Error at parse AMF0 (%d)", error_code);
                 }
                 else {
@@ -2449,7 +2449,7 @@ deparse_amf(data, ...)
                 }
             }
             else {
-                if (io_record.options & OPT_ERROR_RAISE){
+                if (io_record.options & OPT_RAISE_ERROR){
                     croak("Error at parse AMF0 (%d)", error_code);
                 }
                 else {
@@ -2504,7 +2504,7 @@ thaw(data, ...)
                 retvalue = (SV*) (amf3_parse_one(aTHX_  &io_record));
                 sv_2mortal(retvalue);
                 if (io_record.pos!=io_record.end){
-                    if (io_record.options & OPT_ERROR_RAISE){
+                    if (io_record.options & OPT_RAISE_ERROR){
                         croak("AMF3 thaw  failed. EOF at parse (%d)", ERR_EOF);
                     }
                     else {
@@ -2520,7 +2520,7 @@ thaw(data, ...)
                 };
             }
             else {
-                if (io_record.options & OPT_ERROR_RAISE){
+                if (io_record.options & OPT_RAISE_ERROR){
                     croak("Error at parse AMF3 (%d)", error_code);
                 }
                 else {
@@ -2704,7 +2704,7 @@ parse_option(char * s, int options=0)
     SIGN_BOOL_APPLY( options, s_milldate, OPT_MILLSEC_DATE );
     SIGN_BOOL_APPLY( options, s_utf8_decode, OPT_DECODE_UTF8 );
     SIGN_BOOL_APPLY( options, s_utf8_encode, OPT_ENCODE_UTF8 );
-    SIGN_BOOL_APPLY( options, s_raise_error, OPT_ERROR_RAISE );
+    SIGN_BOOL_APPLY( options, s_raise_error, OPT_RAISE_ERROR );
     SIGN_BOOL_APPLY( options, s_prefer_number, OPT_PREFER_NUMBER );
     mXPUSHi(  options ); 
 	
