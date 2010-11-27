@@ -45,6 +45,12 @@ our %MyModule = (
     ABSTRACT => 'serializing/deserializing AMF0/AMF3 data',
     AUTHOR => 'Grishaev Anatoliy  <grian@cpan.org>',
     $ExtUtils::MakeMaker::VERSION >= 6.48 ?  (MIN_PERL_VERSION => MIN_PERL_VERSION) : (),
+    $ExtUtils::MakeMaker::VERSION >= 6.46 ?  (
+		META_MERGE =>{
+		resources => {
+			'git://github.com/Grian/Storable-AMF.git',
+		}
+		}) : (),
     $ExtUtils::MakeMaker::VERSION >= 6.31 ?  ( LICENSE => 'perl') : (),
     NAME         => 'Storable::AMF',
     VERSION_FROM => 'lib/Storable/AMF0.pm',    # finds $VERSION
