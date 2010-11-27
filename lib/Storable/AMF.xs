@@ -2377,7 +2377,7 @@ void freeze(SV *data, ... )
         sv_2mortal(io_self);
         io_out_init(aTHX_  &io_record, 0, AMF0);
         if (1 == items){
-            io_record.options = 0;
+            io_record.options = DEFAULT_MASK;
         }
         else {
             SV * opt = ST(1);
@@ -2480,7 +2480,7 @@ thaw(data, ...)
         mg_get(data);
         // Steting options mode
         if (1 == items){
-            io_record.options = 0;
+            io_record.options = DEFAULT_MASK;
         }
         else {
             SV * opt = ST(1);
@@ -2542,7 +2542,7 @@ endian()
     PPCODE:
     PerlIO_printf(PerlIO_stderr(), "%s %x\n", GAX, BYTEORDER);
 
-void freeze(data, int opts=0)
+void freeze(data, int opts=DEFAULT_MASK)
     SV * data
     PROTOTYPE: $;$
     INIT:
