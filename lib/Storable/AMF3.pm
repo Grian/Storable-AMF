@@ -172,6 +172,7 @@ And some cases faster then Storable( for me always)
   if scalar context return object
 
 =item parse_option
+=item parse_serializator_option
   generate option scalar for freeze/thaw/deparse_amf
   See L<Storable::AMF0> for complete list of options
 

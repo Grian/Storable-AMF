@@ -15,6 +15,7 @@ our %EXPORT_TAGS = (
           deparse_amf new_amfdate perl_date
 		  new_date
 		  parse_serializator_option
+		  parse_option
           )
     ]
 );
@@ -181,6 +182,7 @@ Speed, simplicity and agile.
   --- test if object contain lost memory fragments inside.
   (Example do { my $a = []; @$a=$a; $a})
 
+=item parse_serializator_option
 =item parse_option
   generate option scalar for freeze/thaw/deparse_amf
   See L<Storable::AMF0> for complete list of options

@@ -184,7 +184,7 @@ Storable::AMF0 - serializing/deserializing AMF0 data
   
   use JSON::XS;
 
-  $json =  encode_json( thaw( $amf0, parse_option( 'json_boolean' ))); #  
+  $json =  encode_json( thaw( $amf0, parse_serializator_option( 'json_boolean' ))); #  
 
   $amf_with_boolean = freeze( $JSON::XS::true  or $JSON::XS::false);
   
@@ -194,8 +194,9 @@ Storable::AMF0 - serializing/deserializing AMF0 data
   $amf_with_boolean = freeze( boolean( 1 or '' ));
 
   # Options support 
+  use Storable::AMF[03] qw(parse_option parse_serializator_option);
 
-  my $options = parse_option( "raise_error, prefer_number, json_boolean" );
+  my $options = parse_serializator_option( "raise_error, prefer_number, json_boolean" ); # or parse
   $obj = thaw( $amf, $options );
   $amf = freeze( $obj, $options );
 
@@ -261,6 +262,7 @@ And some cases faster then Storable( for me always)
   if scalar context return object
 
 =item parse_option( $option_string )
+=item parse_serializator_option( $option_string )
   --- generate option scalar from string usefull for some options of thaw/freeze/deparse_amf 
 	
 
