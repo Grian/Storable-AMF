@@ -1313,12 +1313,16 @@ STATIC_INLINE SV* amf0_parse_double(pTHX_ struct io_struct * io){
 inline SV*  gen_boolean(pTHX_ struct io_struct *io, bool value){
     if ( ! (io->options & OPT_JSON_BOOLEAN) ){
 	SV *sv = boolSV( value );
-	SvREFCNT_inc_simple_void_NN( sv );
+	// SvREFCNT_inc_simple_void_NN( sv );
 	return sv;
     } 
     else {
-	SV * sv = boolSV(value );
+	SV * sv =  value ? newSViv(1) :newSVpvn("",0 );
 	SV * rv = newRV( sv  );
+	HV * stash;
+	stash = gv_stashpvn( "JSON::XS", 8, GV_ADD );
+	sv_bless( rv, stash );
+	
 	//Stupid but it works
 	return rv;
     }
