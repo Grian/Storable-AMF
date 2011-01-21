@@ -2,7 +2,7 @@ package Storable::AMF0;
 use strict;
 use warnings;
 use Fcntl qw(:flock);
-our $VERSION = '0.88';
+our $VERSION = '0.89';
 use subs qw(freeze thaw);
 use Scalar::Util qw(refaddr reftype);    # for ref_circled
 use Exporter 'import';
@@ -180,6 +180,25 @@ Storable::AMF0 - serializing/deserializing AMF0 data
   - or -
   $obj = deparse_amf( freeze($a1) . freeze($a) ... );
 
+  # JSON::XS boolean support
+  
+  use JSON::XS;
+
+  $json =  encode_json( thaw( $amf0, parse_option( 'json_boolean' ))); #  
+
+  $amf_with_boolean = freeze( $JSON::XS::true  or $JSON::XS::false);
+  
+  # boolean support;
+
+  use boolean;
+  $amf_with_boolean = freeze( boolean( 1 or '' ));
+
+  # Options support 
+
+  my $options = parse_option( "raise_error, prefer_number, json_boolean" );
+  $obj = thaw( $amf, $options );
+  $amf = freeze( $obj, $options );
+
 =cut
 
 =head1 DESCRIPTION
@@ -202,10 +221,10 @@ And some cases faster then Storable( for me always)
 
 =over
 
-=item freeze($obj) 
+=item freeze($obj [, $option ]) 
   --- Serialize perl object($obj) to AMF0, and return AMF0 data
 
-=item thaw($amf0)
+=item thaw($amf0, [, $option ])
   --- Deserialize AMF0 data to perl object, and return the perl object
 
 =item store $obj, $file
@@ -230,7 +249,7 @@ And some cases faster then Storable( for me always)
   --- Deep cloning data structure
 
 =item ref_clear $obj
-  --- recurrent refs clearing . (Succefully destroy recurent objects with circular liks too)
+  --- recurrent refs clearing . (Succefully destroy recurrent objects with circular links too)
 
 =item ref_lost_memory $obj
   --- test if object contain lost memory fragments inside.
@@ -241,16 +260,45 @@ And some cases faster then Storable( for me always)
   Return one object and number of bytes readed
   if scalar context return object
 
+=item parse_option( $option_string )
+  --- generate option scalar from string usefull for some options of thaw/freeze/deparse_amf 
+	
+
 =back
 
-=head1 NOTICE
+=head1 OPTIONS
+	There are several options supported
 
-  Storable::AMF0 is currently is alpha development stage. 
+=over 4
+
+=item strict
+
+    --- strict mode ( DoS related option)
+
+=item json_boolean
+
+	--- support for JSON::XS boolean
+
+=item prefer_number 
+
+	--- try freezing double val scalars as numbers
+
+=item millisecond_date (depreciated don't use it)
+
+=item raise_error
+
+=item utf8_decode
+
+=item utf8_encode
+
+=back
 
 =cut
+
 =head1 NOTICE
 
-  Storable::AMF0 is currently at alpha development stage. 
+  Storable::AMF0 is currently is at development stage. 
+
 =cut
 
 =head1 LIMITATION
@@ -271,9 +319,15 @@ L<Data::AMF>, L<Storable>, L<Storable::AMF3>
 
 Anatoliy Grishaev, <grian at cpan dot org>
 
+=head1 THANKS
+
+	Alberto Reggiori. ( basic externalized object support )
+	Adam Lounds.      ( tests and some ideas and code for boolean support )
+
+
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2010 by A. G. Grishaev
+Copyright (C) 2011 by A. G. Grishaev
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.8 or,

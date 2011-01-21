@@ -7,7 +7,7 @@ use Exporter 'import';
 use Carp qw(croak);
 BEGIN{
 	our $VERSION;
-	$VERSION='0.84' unless $INC{'Storable/AMF0.pm'};
+	$VERSION='0.89' unless $INC{'Storable/AMF0.pm'};
 };
 use Storable::AMF0 ();
 
@@ -171,6 +171,10 @@ And some cases faster then Storable( for me always)
   Return one object and number of bytes readed
   if scalar context return object
 
+=item parse_option
+  generate option scalar for freeze/thaw/deparse_amf
+  See L<Storable::AMF0> for complete list of options
+
 =back
 
 
@@ -181,15 +185,20 @@ and can't/ may not serialize tied variables.
 
 =head1 SEE ALSO
 
-L<Data::AMF>, L<Storable>, L<Storable::AMF3>
+L<Data::AMF>, L<Storable>, L<Storable::AMF3>, L<Storable::AMF>
 
 =head1 AUTHOR
 
 Anatoliy Grishaev, <grian at cpan dot org>
 
+=head1 THANKS
+
+	Alberto Reggiori. ( basic externalized object support )
+	Adam Lounds.      ( tests and some ideas and code for boolean support )
+
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2010 by A. G. Grishaev
+Copyright (C) 2011 by A. G. Grishaev
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.8 or,

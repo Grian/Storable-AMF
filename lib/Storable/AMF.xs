@@ -90,6 +90,7 @@
 #define OPT_RAISE_ERROR   8
 #define OPT_MILLSEC_DATE  16
 #define OPT_PREFER_NUMBER 32
+#define OPT_JSON_BOOLEAN  64
 
 #define EXPERIMENT1
 
@@ -129,6 +130,7 @@
 #define SIGN_BOOL_APPLY( obj, sign, mask ) ( sign > 0 ? obj|=mask : sign <0 ? obj&=~mask : 0 ) 
 #define DEFAULT_MASK OPT_PREFER_NUMBER
 
+struct io_amf_option;
 //#define TRACE0
 struct amf3_restore_point{
     int offset_buffer;
@@ -162,6 +164,16 @@ struct io_struct{
     int rc_trait;
     int version;
     int options;
+    struct io_amf_option* ext_option;
+};
+
+
+struct io_amf_option{
+    int options;
+    SV *bool_true;
+    SV *bool_false;
+    HV *ext_code;
+    SV *parse_code;
 };
 
 inline void io_register_error(struct io_struct *io, int);
@@ -575,6 +587,22 @@ inline void format_scalar_ref(pTHX_ struct io_struct * io, SV *ref){
 }
 
 inline void format_one(pTHX_ struct io_struct *io, SV * one){
+    if (SvROK(one)){
+	if ( sv_isobject( one )){
+	    bool is_perl_bool = 0;
+	    if ( sv_isa(one, "boolean" )){
+		is_perl_bool  = 1;
+	    }
+	    if ( sv_isa(one, "JSON::XS::Boolean")){
+		is_perl_bool =  1;
+	    }
+	    if ( is_perl_bool ){
+		io_write_marker(aTHX_ io, MARKER0_BOOLEAN );
+		io_write_u8(aTHX_  io, SvTRUE( SvRV( one  )) ? 1 : 0);
+		return ;
+	    }
+	}
+    }
 
     if (SvROK(one)){
         SV * rv = (SV*) SvRV(one);
@@ -723,7 +751,7 @@ inline void format_typed_object(pTHX_ struct io_struct *io,  HV * one){
 
 STATIC_INLINE SV * parse_one(pTHX_ struct io_struct * io);
 
-STATIC_INLINE SV* parse_boolean(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_boolean(pTHX_ struct io_struct *io);
 STATIC_INLINE SV* parse_object(pTHX_ struct io_struct *io);
 STATIC_INLINE SV* parse_movieclip(pTHX_ struct io_struct *io);
 STATIC_INLINE SV* parse_null(pTHX_ struct io_struct *io);
@@ -1278,16 +1306,64 @@ STATIC_INLINE SV* parse_typed_object(pTHX_ struct io_struct *io){
     sv_bless(RETVALUE, stash);
     return RETVALUE;
 }
-STATIC_INLINE SV* parse_double(pTHX_ struct io_struct * io){
+STATIC_INLINE SV* amf0_parse_double(pTHX_ struct io_struct * io){
     return newSVnv(io_read_double(io));
 }
 
+inline SV*  gen_boolean(pTHX_ struct io_struct *io, bool value){
+    if ( ! (io->options & OPT_JSON_BOOLEAN) ){
+	SV *sv = boolSV( value );
+	SvREFCNT_inc_simple_void_NN( sv );
+	return sv;
+    } 
+    else {
+	SV * sv = boolSV(value );
+	SV * rv = newRV( sv  );
+	//Stupid but it works
+	return rv;
+    }
+}
+STATIC_INLINE SV* amf0_parse_boolean(pTHX_ struct io_struct * io){
+    char marker;
+    bool value; 
+    marker = io_read_marker(io);
+    value = (marker != '\000');
+    return gen_boolean(aTHX_ io, value);
+}
+
+/* 
 STATIC_INLINE SV* parse_boolean(pTHX_ struct io_struct * io){
     char marker;
     marker = io_read_marker(io);
-    return newSViv(marker == '\000' ? 0 :1);
-}
 
+    int count;
+    SV *value = 0;
+    SAVETMPS;
+
+    dSP;
+
+    ENTER; SAVETMPS; PUSHMARK (SP);
+    PUTBACK;
+    if ( marker == '\000' ) {
+        count = call_pv("JSON::XS::false", G_SCALAR);
+    }
+    else {
+        count = call_pv("JSON::XS::true", G_SCALAR);
+    }
+    SPAGAIN;
+    if (count == 1)
+        value = newSVsv(POPs);
+
+    if (count != 1 || !SvOK(value)) {
+        // fallback, return 0/1
+        value = newSViv( marker == '\000' ? 0 : 1 );
+    }
+
+    PUTBACK;
+    FREETMPS; LEAVE;
+    return value;
+}
+*/ 
 inline SV * amf3_parse_one(pTHX_ struct io_struct *io);
 STATIC_INLINE SV * amf3_parse_undefined(pTHX_ struct io_struct *io){
     SV * RETVALUE;
@@ -1301,13 +1377,13 @@ STATIC_INLINE SV * amf3_parse_null(pTHX_ struct io_struct *io){
 }
 STATIC_INLINE SV * amf3_parse_false(pTHX_ struct io_struct *io){
     SV * RETVALUE;
-    RETVALUE = newSViv(0);
+    RETVALUE =  gen_boolean( aTHX_ io, 0 );
     return RETVALUE;
 }
 
 STATIC_INLINE SV * amf3_parse_true(pTHX_ struct io_struct *io){
     SV * RETVALUE;
-    RETVALUE = newSViv(1);
+    RETVALUE =  gen_boolean( aTHX_ io, 1 );
     return RETVALUE;
 }
 STATIC_INLINE SV * amf3_parse_integer(pTHX_ struct io_struct *io){
@@ -1836,6 +1912,22 @@ inline void amf3_format_object(pTHX_ struct io_struct *io, SV * rone){
     io_write_marker(aTHX_  io, STR_EMPTY); 
 }
 inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
+    if (SvROK(one)){
+	if ( sv_isobject( one )){
+	    bool is_perl_bool = 0;
+	    if ( sv_isa(one, "boolean" )){
+		is_perl_bool  = 1;
+	    }
+	    if ( sv_isa(one, "JSON::XS::Boolean")){
+		is_perl_bool =  1;
+	    }
+	    if ( is_perl_bool ){
+		io_write_marker(aTHX_ io, (SvTRUE( SvRV( one )) ? MARKER3_TRUE : MARKER3_FALSE ) );
+		// io_write_u8(aTHX_  io, SvTRUE( SvRV( one )) ? 1 : 0);
+		return ;
+	    }
+	}
+    }
 
     if (SvROK(one)){
         SV * rv = (SV*) SvRV(one);
@@ -1917,8 +2009,8 @@ typedef SV* (*parse_sub)(pTHX_ struct io_struct *io);
 
 
 parse_sub parse_subs[] = {
-    &parse_double,
-    &parse_boolean,
+    &amf0_parse_double,
+    &amf0_parse_boolean,
     &parse_utf8,
     &parse_object,
     &parse_movieclip,
@@ -2487,6 +2579,7 @@ parse_option(char * s, int options=0)
     I8 s_milldate;
     I8 s_raise_error;
     I8 s_prefer_number;
+    I8 s_ext_boolean;
     I8 sign;
     char *word;
     char *current;
@@ -2506,6 +2599,7 @@ parse_option(char * s, int options=0)
     s_milldate    = 0;
     s_raise_error = 0;
     s_prefer_number = 0;
+    s_ext_boolean   = 0;
     options       = 0;
     current = s;
     for( ;*current && ( !isALPHA( *current ) && *current!='+' && *current!='-' ) ; ++current ); 
@@ -2554,6 +2648,16 @@ parse_option(char * s, int options=0)
 		error = sign;
 	    };
 	    break;
+	case   12:
+	    if (!strncmp("json_boolean", word, 12)){
+		s_ext_boolean = sign;
+	    }
+	    else if (!strncmp("boolean_json", word, 12)){
+		s_ext_boolean = sign;
+	    }
+	    else  
+		error = 1;
+	    break;
 	case   16:
 	    if (!strncmp("millisecond_date", word, 16)){
 		s_milldate = sign;
@@ -2576,6 +2680,7 @@ parse_option(char * s, int options=0)
     SIGN_BOOL_APPLY( options, s_utf8_encode, OPT_ENCODE_UTF8 );
     SIGN_BOOL_APPLY( options, s_raise_error, OPT_RAISE_ERROR );
     SIGN_BOOL_APPLY( options, s_prefer_number, OPT_PREFER_NUMBER );
+    SIGN_BOOL_APPLY( options, s_ext_boolean,   OPT_JSON_BOOLEAN );
     mXPUSHi(  options ); 
 	
 MODULE=Storable::AMF

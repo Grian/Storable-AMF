@@ -319,3 +319,9 @@ Revision history for Perl extension Storable::AMF.
 
 0.86	       2010-10-26 23:45 +0400
 	- prefer number option added (experimental)
+
+0.89	    2011-01-20
+	- boolean support ( JSON::XS and boolean type )
+	- new option ( 'json_boolean' )
+	- thaw( AMF0_FALSE ) now is '' before it was 0
+	- thaw( AMF3_FALSE ) now is '' before it waw 0

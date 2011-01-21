@@ -35,8 +35,8 @@ for my $file ( 'lib/Storable/AMF.xs', 'lib/Storable/ppport.h', ){
 
 our %MyModule = (
     PREREQ_PM => { 
-        'Module::Build::Compat' => 0.02, 
-        'Module::Build' => 0.2,
+# 'Module::Build::Compat' => 0.02, 
+#        'Module::Build' => 0.2,
 	'File::Copy'    => 0,
 	'Cwd'    => 0,
         }
@@ -47,9 +47,12 @@ our %MyModule = (
     $ExtUtils::MakeMaker::VERSION >= 6.48 ?  (MIN_PERL_VERSION => MIN_PERL_VERSION) : (),
     $ExtUtils::MakeMaker::VERSION >= 6.46 ?  (
 		META_MERGE =>{
-		resources => {
-			'git://github.com/Grian/Storable-AMF.git',
-		}
+			resources => {
+				'repository'=> 'git://github.com/Grian/Storable-AMF.git',
+				'license'	=> 'http://dev.perl.org/licenses/',
+				'homepage'	=> 'http://search.cpan.org/dist/Storable-AMF',
+				'bugtracker'	=> 'http://rt.cpan.org/NoAuth/Bugs.html?Dist=Storable-AMF',
+			}
 		}) : (),
     $ExtUtils::MakeMaker::VERSION >= 6.31 ?  ( LICENSE => 'perl') : (),
     NAME         => 'Storable::AMF',

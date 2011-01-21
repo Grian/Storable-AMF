@@ -22,6 +22,12 @@ TEST_LOOP: for my $packet (@item){
     my ($name, $image_amf3, $image_amf0, $eval, $obj) = @$packet{qw(name amf3 amf0 eval obj)};
 	my $option = MDATE;
 	$option = OPT_UD if ($eval =~m/use\s+utf8/) ;
+	if ( $name =~m/boolean/ ){
+#		print STDERR Dumper( $packet );
+		delete @$packet{ 'obj_xml', 'xml', 'dump', 'eval_xml', 'obj'};
+		$packet->{eval} = "''; ";
+# GrianUtils->create_pack( '.', $name, $packet );
+	}
 
 	my $new_obj;
 	ok(defined(Storable::AMF0::freeze($obj)), "defined ($name) $eval");
