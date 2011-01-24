@@ -330,3 +330,6 @@ Revision history for Perl extension Storable::AMF.
 	- fixed typo in boolean
 	- added more test
 	- remove dependeces in JSON::XS
+
+0.91	    2011-01-24
+	- added more real tests for boolean support 

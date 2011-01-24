@@ -57,6 +57,9 @@ ok( is_amf_boolean (  $a = false ),  'boolean var');
 ABC:
 my $json_true = JSON::XS::true;
 my $json_false = JSON::XS::false;
+my $boolean_true = true;
+my $boolean_false = false;
+
 my $object = {
     a => {a => 1},
     jxb1 => $json_true,

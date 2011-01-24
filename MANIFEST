@@ -52,6 +52,8 @@ t/63-parse-option.t
 t/64-prefer-number.t
 t/65-prefer-number3.t
 t/66-boolean-3.t
+t/67-boolean-real.t
+t/68-boolean-json.t
 t/AMF0/01-array-foo-bar-x2.pack
 t/AMF0/01-boolean-false.pack
 t/AMF0/01-boolean-true.pack
