@@ -1,6 +1,6 @@
-#define _CRT_SECURE_NO_DEPRECATE // Win32 compilers close eyes...
+#define _CRT_SECURE_NO_DEPRECATE /* Win32 compilers close eyes... */
 #define PERL_NO_GET_CONTEXT
-#undef  PERL_IMPLICIT_SYS // Sigsetjmp will not work under this
+#undef  PERL_IMPLICIT_SYS /* Sigsetjmp will not work under this */
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
@@ -44,7 +44,7 @@
 #define MARKER3_OBJECT	  '\x0a'
 #define MARKER3_XML	  '\x0b'
 #define MARKER3_BYTEARRAY '\x0c'
-#define MARKER3_AMF_PLUS	  '\x11' // Not supported 
+#define MARKER3_AMF_PLUS	  '\x11' /* Not supported */
 
 #define MARKER0_NUMBER		  '\x00'
 #define MARKER0_BOOLEAN		  '\x01'
@@ -63,7 +63,7 @@
 #define MARKER0_RECORDSET	  '\x0e'
 #define MARKER0_XML_DOCUMENT      '\x0f'
 #define MARKER0_TYPED_OBJECT	  '\x10'
-#define MARKER0_AMF_PLUS	  '\x11' //not supported
+#define MARKER0_AMF_PLUS	  '\x11' /*not supported */
 
 #define ERR_EOF 1
 #define ERR_REF 2
@@ -131,7 +131,7 @@
 #define DEFAULT_MASK OPT_PREFER_NUMBER
 
 struct io_amf_option;
-//#define TRACE0
+/*#define TRACE0 */
 struct amf3_restore_point{
     int offset_buffer;
     int offset_object;
@@ -253,7 +253,7 @@ inline void io_register_error_and_free(pTHX_ struct io_struct *io, int errtype, 
     Siglongjmp(io->target_error, errtype);
 }
 inline void io_in_init(pTHX_ struct io_struct * io, SV *io_self, SV* data, int amf3){
-    //    PerlInterpreter *my_perl = io->interpreter;
+    /*    PerlInterpreter *my_perl = io->interpreter; */
     STRLEN io_len;
     io->ptr = (unsigned char *) SvPVX(data);
     io_len  = SvLEN(data);
@@ -300,10 +300,10 @@ inline void io_in_destroy(pTHX_ struct io_struct * io, AV *a){
             io_in_destroy(aTHX_  io, io->refs);
         }
         else if (io->version == AMF3) {
-            //            fprintf( stderr, "%p %p %p %p\n", io->refs, io->arr_object, io->arr_trait, io->arr_string);
+            /*            fprintf( stderr, "%p %p %p %p\n", io->refs, io->arr_object, io->arr_trait, io->arr_string); */
             io_in_destroy(aTHX_  io, io->refs);
             io_in_destroy(aTHX_  io, io->arr_object);
-            io_in_destroy(aTHX_  io, io->arr_trait); // May be not needed
+            io_in_destroy(aTHX_  io, io->arr_trait); /* May be not needed */
             io_in_destroy(aTHX_  io, io->arr_string);
         }
         else {
@@ -353,46 +353,6 @@ inline SV * io_buffer(struct io_struct *io){
     return io->sv_buffer;
 }
 
-
-// inline char * SVt_string(SV * ref){
-    // 	char *type;
-    // 	switch(SvTYPE(ref)){
-        // 		case SVt_IV:
-        // 			type = "Scalar IV";
-        // 			break;
-        // 		case SVt_NV:
-        // 			type = "Scalar NV";
-        // 			break;
-        // 		case SVt_PV:
-        // 			type = "Scalar pointer(PV)";
-        // 			break;
-        // 		case SVt_RV:
-        // 			type = "Scalar reference";
-        // 			break;
-        // 		case SVt_PVAV:
-        // 			type = "Array";
-        // 			break;
-        // 		case SVt_PVHV:
-        // 			type = "Hash";
-        // 			break;
-        // 		case SVt_PVCV:
-        // 			type = "Code";
-        // 			break;
-        // 		case SVt_PVGV:
-        // 			type = "Glob (possible a file handler)";
-        // 			break;
-        // 		case SVt_PVMG:
-        // 			type = "Blessed or Magical Scalar";
-        // 			break;
-        // 		default:
-        // 			type = "Unknown";
-        // 			break;
-        // 	}
-    // 	if (! ref ){
-        // 		type = "null pointer";
-        // 	}
-    // 	return type;
-    // }
 inline double io_read_double(struct io_struct *io);
 inline char io_read_marker(struct io_struct * io);
 inline int io_read_u8(struct io_struct * io);
@@ -535,7 +495,7 @@ inline void io_write_bytes(pTHX_ struct io_struct* io, const char * const buffer
     Copy(buffer, io->pos, len, char);
     io->pos+=len;
 }	
-// Date checking
+/* Date checking */
 inline bool util_is_date(SV *one);
 inline double util_date_time(SV *one);
 
@@ -573,15 +533,15 @@ inline void format_scalar_ref(pTHX_ struct io_struct * io, SV *ref){
     const char *const reftype = "REFVAL";
     
     io_write_marker(aTHX_  io, MARKER0_TYPED_OBJECT);
-    // special type
+    /* special type */
     io_write_u16(aTHX_  io, 6);
     io_write_bytes(aTHX_  io, reftype, 6);
 
-    // type
+    /* type */
     io_write_u16(aTHX_  io, 6);
     io_write_bytes(aTHX_  io, reftype, 6);
     format_one(aTHX_  io, ref);
-    // end marker
+    /* end marker */
     io_write_u16(aTHX_  io, 0);
     io_write_marker(aTHX_  io, MARKER0_OBJECT_END);
 }
@@ -598,6 +558,7 @@ inline void format_one(pTHX_ struct io_struct *io, SV * one){
 	    }
 	    if ( is_perl_bool ){
 		io_write_marker(aTHX_ io, MARKER0_BOOLEAN );
+		/*  TODO SvTRUE can call die or something like */
 		io_write_u8(aTHX_  io, SvTRUE( SvRV( one  )) ? 1 : 0);
 		return ;
 	    }
@@ -606,7 +567,7 @@ inline void format_one(pTHX_ struct io_struct *io, SV * one){
 
     if (SvROK(one)){
         SV * rv = (SV*) SvRV(one);
-        // test has stored
+        /*  test has stored */
         SV **OK = hv_fetch(io->RV_HASH, (char *)(&rv), sizeof (rv), 1);
         if (SvOK(*OK)) {
             format_reference(aTHX_  io, *OK);
@@ -626,7 +587,7 @@ inline void format_one(pTHX_ struct io_struct *io, SV * one){
 		    io_write_s16(aTHX_ io, 0 );
 		}
 		else {		    
-                    // may be i has to format as undef
+                    /* may be i has to format as undef */
                     io_register_error(io, ERR_BAD_OBJECT);
                 }
             }
@@ -678,7 +639,7 @@ inline void format_number(pTHX_ struct io_struct *io, SV * one){
 }
 inline void format_string(pTHX_ struct io_struct *io, SV * one){
 
-    // TODO: process long string
+    /* TODO: process long string */
     if (SvPOK(one)){
         STRLEN str_len;
         char * pv;
@@ -939,7 +900,7 @@ inline int amf3_read_integer(struct io_struct *io){
                     value = value | ~(0x0fffffff);
                 }
                 else {
-                    // no return value;
+                    /* no return value; */ ;
                 }
                 io_move_forward(io, 4);
             }
@@ -1082,7 +1043,7 @@ STATIC_INLINE SV* parse_ecma_array(pTHX_ struct io_struct *io){
     U32 array_len;
     AV * this_array;
     AV * refs = io->refs;
-    int  position; //remember offset for array convertion to hash
+    int  position; /*remember offset for array convertion to hash */
     int last_len;
     char last_marker;
     int av_refs_len;
@@ -1115,7 +1076,7 @@ STATIC_INLINE SV* parse_ecma_array(pTHX_ struct io_struct *io){
         else {
             if (((key_len) == 6  &&  strnEQ(key_ptr, "length", 6))){
                 ok = 1;
-                array_len++; // safe for flash v.9.0
+                array_len++; /* safe for flash v.9.0 */
                 sv_2mortal( parse_one(aTHX_  io));
             }
             else {
@@ -1175,7 +1136,7 @@ STATIC_INLINE SV* parse_ecma_array(pTHX_ struct io_struct *io){
         SvREFCNT_inc_simple_void_NN(RETVALUE);
     }
     else{
-        // Need rollback referenses 
+        /* Need rollback referenses */
         int i;
         for( i = av_len(refs) - av_refs_len; i>0 ;--i){
             SV * ref = av_pop(refs);
@@ -1288,7 +1249,7 @@ STATIC_INLINE SV* parse_typed_object(pTHX_ struct io_struct *io){
 
     len = io_read_u16(io);
     if (len == 6 && !strncmp( (char *)io->pos, "REFVAL", 6)){
-        // SCALAR
+        /* SCALAR */
         RETVALUE = parse_scalar_ref(aTHX_ io);
         if (RETVALUE)
             return RETVALUE;
@@ -1313,17 +1274,17 @@ STATIC_INLINE SV* amf0_parse_double(pTHX_ struct io_struct * io){
 inline SV*  util_boolean(pTHX_ struct io_struct *io, bool value){
     if ( ! (io->options & OPT_JSON_BOOLEAN) ){
 	SV *sv = boolSV( value );
-	// SvREFCNT_inc_simple_void_NN( sv );
+	/* SvREFCNT_inc_simple_void_NN( sv ); */
 	return sv;
     } 
     else {
 	SV * sv =  value ? newSViv(1) :newSVpvn("",0 );
-	SV * rv = newRV( sv  );
+	SV * rv = newRV_noinc( sv  );
 	HV * stash;
 	stash = gv_stashpvn( "JSON::XS::Boolean", 17, GV_ADD );
 	sv_bless( rv, stash );
 	
-	//Stupid but it works
+	/*Stupid but it works */
 	return rv;
     }
 }
@@ -1359,7 +1320,6 @@ STATIC_INLINE SV* parse_boolean(pTHX_ struct io_struct * io){
         value = newSVsv(POPs);
 
     if (count != 1 || !SvOK(value)) {
-        // fallback, return 0/1
         value = newSViv( marker == '\000' ? 0 : 1 );
     }
 
@@ -1424,9 +1384,9 @@ inline char * amf3_read_string(pTHX_ struct io_struct *io, int ref_len, STRLEN *
             return pstr; 
         }
         else {
-            // Exception: May be there throw some
+            /* Exception: May be there throw some */
             io_register_error(io, ERR_BADREF);
-	    return 0; // Never reach this lime
+	    return 0; /* Never reach this lime */
         }
     }
 }
@@ -1488,7 +1448,7 @@ inline SV * amf3_parse_array(pTHX_ struct io_struct *io){
     SV * RETVALUE;
     int ref_len = amf3_read_integer(io);
     if (ref_len & 1){
-        // Not referense
+        /* Not referense */
         int len = ref_len>>1;
         int str_len;
         SV * item;
@@ -1508,9 +1468,9 @@ inline SV * amf3_parse_array(pTHX_ struct io_struct *io){
 
         io_savepoint(aTHX_  io, &rec_point);		
 
-        // Пытаемся востановить как массив 
-        // Считаем что это массив если первый индекс от 0 до 9 и все индексы числовые
-        //
+        /* Пытаемся востановить как массив 
+         Считаем что это массив если первый индекс от 0 до 9 и все индексы числовые
+        */
         array=newAV();
         item = (SV *) array;
         RETVALUE = newRV_noinc(item);
@@ -1538,14 +1498,14 @@ inline SV * amf3_parse_array(pTHX_ struct io_struct *io){
                         str_len = amf3_read_integer(io);
                     }
                     else {
-                        //recover
+                        /* recover */
                         recover = TRUE;
                         break;
                     }
                 };
             }
             else {
-                //recover
+                /* recover */
                 recover = TRUE;
             }
         }
@@ -1557,7 +1517,7 @@ inline SV * amf3_parse_array(pTHX_ struct io_struct *io){
             };
         }
         else {
-            //востанавливаем как хэш
+            /*востанавливаем как хэш */
             HV * hv;
             char *pstr;
             STRLEN plen;
@@ -1616,7 +1576,7 @@ inline SV * amf3_parse_object(pTHX_ struct io_struct *io){
     #ifdef TRACE0
     fprintf(stderr, "obj_ref = %d\n", obj_ref);
     #endif
-    if (obj_ref & 1) {// not a ref object
+    if (obj_ref & 1) {/* not a ref object */
         AV * trait;
         int sealed;
         bool dynamic;
@@ -1625,7 +1585,7 @@ inline SV * amf3_parse_object(pTHX_ struct io_struct *io){
         HV *one;
         int i;
 
-        if (!(obj_ref & 2)){// not trait ref
+        if (!(obj_ref & 2)){/* not trait ref */
             SV** trait_item	= av_fetch(io->arr_trait, obj_ref>>2, 0);
             if (! trait_item) {
                 io_register_error(io, ERR_BAD_TRAIT_REF);
@@ -1648,7 +1608,7 @@ inline SV * amf3_parse_object(pTHX_ struct io_struct *io){
 
 	    av_push(trait, newSViv(sealed));
 	    av_push(trait, newSViv(dynamic));
-	    av_push(trait, newSViv( externalizable )); // external processing
+	    av_push(trait, newSViv( externalizable )); /* external processing */
 	    av_push(trait, class_name_sv);
 
 	    for(i =0; i<sealed; ++i){
@@ -1701,7 +1661,7 @@ inline SV * amf3_parse_object(pTHX_ struct io_struct *io){
             sv_bless(RETVALUE, stash);
         }
         else {
-            // No bless
+            /* No bless */
         }
     }
     else {
@@ -1720,7 +1680,7 @@ inline SV * amf3_parse_object(pTHX_ struct io_struct *io){
 STATIC_INLINE SV * amf3_parse_xml(pTHX_ struct io_struct *io){
     SV * RETVALUE;
     int Bi = amf3_read_integer(io);
-    if (Bi & 1) { // value
+    if (Bi & 1) { /* value */
         int len = Bi>>1;
         char *b = io_read_bytes(io, len);
         RETVALUE = newSVpvn(b, len);
@@ -1743,7 +1703,7 @@ STATIC_INLINE SV * amf3_parse_xml(pTHX_ struct io_struct *io){
 STATIC_INLINE SV * amf3_parse_bytearray(pTHX_ struct io_struct *io){
     SV * RETVALUE;
     int Bi = amf3_read_integer(io);
-    if (Bi & 1) { // value
+    if (Bi & 1) { /* value */
         int len = Bi>>1;
         char *b = io_read_bytes(io, len);
         RETVALUE = newSVpvn(b, len);
@@ -1836,7 +1796,7 @@ inline void amf3_format_array(pTHX_ struct io_struct *io, AV * one){
     io_write_marker(aTHX_  io, MARKER3_ARRAY);
     alen = av_len(one)+1;
     amf3_write_integer(aTHX_  io, 1 | (alen) <<1 );
-    io_write_marker(aTHX_  io, STR_EMPTY); // no sparse array;
+    io_write_marker(aTHX_  io, STR_EMPTY); /*  no sparse array; */
     for( i = 0; i<alen ; ++i){
         aitem = av_fetch(one, i, 0);
         if (aitem) {
@@ -1892,9 +1852,10 @@ inline void amf3_format_object(pTHX_ struct io_struct *io, SV * rone){
 
     }
 
-    // where must enumeration of sealed attributes
+    /* where must enumeration of sealed attributes
 
-    // where will dynamic properties
+    where will dynamic properties
+    */
 
     if (1){
         HV *hv;
@@ -1927,7 +1888,7 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
 	    }
 	    if ( is_perl_bool ){
 		io_write_marker(aTHX_ io, (SvTRUE( SvRV( one )) ? MARKER3_TRUE : MARKER3_FALSE ) );
-		// io_write_u8(aTHX_  io, SvTRUE( SvRV( one )) ? 1 : 0);
+		/* io_write_u8(aTHX_  io, SvTRUE( SvRV( one )) ? 1 : 0); */
 		return ;
 	    }
 	}
@@ -1935,7 +1896,7 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
 
     if (SvROK(one)){
         SV * rv = (SV*) SvRV(one);
-        // test has stored
+        /* test has stored */
         SV **OK = hv_fetch(io->hv_object, (char *)(&rv), sizeof (rv), 1);
         if (SvOK(*OK)) {
             if (SvTYPE(rv) == SVt_PVAV) {
@@ -1947,7 +1908,7 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
                 amf3_format_reference(aTHX_  io, *OK);
             }
 	    else if (sv_isobject(one) && util_is_date(rv)){
-		io_write_marker(aTHX_ io, MARKER3_OBJECT ); //#TODO
+		io_write_marker(aTHX_ io, MARKER3_OBJECT ); /*#TODO */
 		amf3_format_reference(aTHX_  io, *OK);
 	    }
             else {
@@ -2057,7 +2018,7 @@ inline SV * amf3_parse_one(pTHX_ struct io_struct * io){
     }
     else {
         io_register_error(io, ERR_MARKER);
-	return 0; // Never reach this statement
+	return 0; /* Never reach this statement */
     }
 }
 STATIC_INLINE SV * parse_one(pTHX_ struct io_struct * io){
@@ -2115,8 +2076,8 @@ inline SV * deep_clone(pTHX_ SV * value){
             copy = newRV_noinc((SV*)deep_clone(aTHX_  (SV*) rv));
         }
         else {
-            // TODO: error checking
-            //return newSV(0);
+            /* TODO: error checking
+            return newSV(0); */
             copy = newRV_noinc(deep_clone(aTHX_  rv));
         }
         if (sv_isobject(value)) {
@@ -2201,7 +2162,7 @@ thaw(SV *data, ...)
 	PERL_UNUSED_VAR(ix);
         if (SvMAGICAL(data))
         mg_get(data);
-        // sting options mode
+        /* sting options mode */
         if (1 == items ){
             io_record.options = 0;
         }
@@ -2224,8 +2185,8 @@ thaw(SV *data, ...)
             io_in_init(aTHX_  &io_record, io_self, data, AMF0);
             sv_2mortal(io_self);
             if ((error_code = Sigsetjmp(io_record.target_error, 0)) ){
-                //croak("Failed parse string. unspected EOF");
-                //TODO: ERROR CODE HANDLE
+                /*croak("Failed parse string. unspected EOF");
+                TODO: ERROR CODE HANDLE */
                 if (io_record.options & OPT_RAISE_ERROR){
                     croak("Error at parse AMF0 (%d)", error_code);
                 }
@@ -2234,7 +2195,7 @@ thaw(SV *data, ...)
                     sv_setpvf(ERRSV, "Error at parse AMF0 (%d)", error_code);
                     SvIOK_on(ERRSV);
                 }
-                io_in_destroy(aTHX_  &io_record, 0); // all obects
+                io_in_destroy(aTHX_  &io_record, 0); /* all obects */
             }
             else {
                 retvalue = (SV*) (parse_one(aTHX_  &io_record));
@@ -2248,7 +2209,7 @@ thaw(SV *data, ...)
                         sv_setpvf(ERRSV, "EOF at parse AMF0 (%d)", ERR_EXTRA_BYTE);
                         SvIOK_on(ERRSV);
                     }                    
-                    io_in_destroy(aTHX_  &io_record, 0); // all objects                    
+                    io_in_destroy(aTHX_  &io_record, 0); /* all objects                    */
 
                 }
                 else {
@@ -2274,7 +2235,7 @@ deparse_amf(SV *data, ...)
 	PERL_UNUSED_VAR(ix);
         if (SvMAGICAL(data))
         mg_get(data);
-        // sting options mode
+        /* sting options mode */
         if (1 >= items ){
             io_record.options = 0;
         }
@@ -2310,8 +2271,9 @@ deparse_amf(SV *data, ...)
                 }
             }
             else {
-                //croak("Failed parse string. unspected EOF");
-                //TODO: ERROR CODE HANDLE
+                /*croak("Failed parse string. unspected EOF");
+                TODO: ERROR CODE HANDLE
+		*/
                 if (io_record.options & OPT_RAISE_ERROR){
                     croak("Error at parse AMF0 (%d)", error_code);
                 }
@@ -2320,7 +2282,7 @@ deparse_amf(SV *data, ...)
                     sv_setpvf(ERRSV, "Error at parse AMF0 (%d)", error_code);
                     SvIOK_on(ERRSV);
                 }
-                io_in_destroy(aTHX_  &io_record, 0); // all obects
+                io_in_destroy(aTHX_  &io_record, 0); /* all objects */
 
             }
         }
@@ -2383,7 +2345,7 @@ deparse_amf(data, ...)
 
         if (SvMAGICAL(data))
         mg_get(data);
-        // Steting options mode
+        /* Setting options mode */
         if (1 == items){
             io_record.options = 0;
         }
@@ -2450,7 +2412,7 @@ thaw(data, ...)
 
         if (SvMAGICAL(data))
         mg_get(data);
-        // Steting options mode
+        /* Setting options mode */
         if (1 == items){
             io_record.options = DEFAULT_MASK;
         }
@@ -2537,7 +2499,7 @@ void freeze(SV *data, int opts=DEFAULT_MASK)
         }
         else {
 
-            //TODO: ERROR CODE HANDLE
+            /*TODO: ERROR CODE HANDLE */
             sv_setiv(ERRSV, error_code);
             sv_setpvf(ERRSV, "AMF3 format  failed. (Code %d)", error_code);
             SvIOK_on(ERRSV);
@@ -2557,7 +2519,7 @@ new_amfdate(NV timestamp )
     PPCODE:
 	PERL_UNUSED_VAR( ix );
 	mortal=sv_newmortal();
-	sv_setref_nv( mortal, "*", timestamp ); //Stupid but it works
+	sv_setref_nv( mortal, "*", timestamp ); /*Stupid but it works */
 	XPUSHs( mortal );
 
 void 
