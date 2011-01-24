@@ -16,6 +16,7 @@ our %EXPORT_TAGS = (
 		  new_date
 		  parse_serializator_option
 		  parse_option
+		  freeze0 freeze3 thaw0 thaw3
           )
     ]
 );

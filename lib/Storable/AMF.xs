@@ -2191,6 +2191,7 @@ void
 thaw(SV *data, ...)
     ALIAS:
 	Storable::AMF::thaw=1
+	Storable::AMF::thaw0=2
     PROTOTYPE: $;$
     INIT:
         SV* retvalue;
@@ -2332,6 +2333,7 @@ deparse_amf(SV *data, ...)
 void freeze(SV *data, ... )
     ALIAS:
 	Storable::AMF::freeze=1
+	Storable::AMF::freeze0=2
     PROTOTYPE: $;$
     INIT:
         SV * retvalue;
@@ -2339,7 +2341,7 @@ void freeze(SV *data, ... )
         struct io_struct io_record;
         int error_code;
     PPCODE:
-	PERL_UNUSED_VAR(ix);        //#io_self= newSVpvn("",0);
+	PERL_UNUSED_VAR(ix);
         io_self= newSV(0);
         sv_2mortal(io_self);
         io_out_init(aTHX_  &io_record, 0, AMF0);
@@ -2441,7 +2443,10 @@ thaw(data, ...)
         SV* retvalue;
         SV* io_self;
         struct io_struct io_record;
+    ALIAS:
+	Storable::AMF::thaw3=1
     PPCODE:
+	PERL_UNUSED_VAR(ix);
 
         if (SvMAGICAL(data))
         mg_get(data);
@@ -2516,7 +2521,10 @@ void freeze(SV *data, int opts=DEFAULT_MASK)
         SV * io_self;
         struct io_struct io_record;
         int error_code;
+    ALIAS:
+	Storable::AMF::freeze3=1
     PPCODE:
+	PERL_UNUSED_VAR(ix); 
         io_self= newSV(0);
         io_out_init(aTHX_  &io_record, 0, AMF3);
 	io_record.options = opts;

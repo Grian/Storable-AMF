@@ -9,9 +9,9 @@ use strict;
 use warnings;
 use ExtUtils::testlib;
 use Storable::AMF0 qw(parse_option freeze thaw new_amfdate);
+use Storable::AMF  qw(thaw0 freeze0 thaw3 freeze3);
 use Data::Dumper;
 use Devel::Peek;
-#use JSON::XS;
 
 sub boolean{
 	return bless \(my $s = $_[0]), 'boolean';
@@ -29,7 +29,7 @@ sub JSON::XS::false{
 	return bless \(my $o = 0), "JSON::XS::Boolean";
 }
 
-my $total = 19;
+my $total = 13 + 6 + 6;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
 my $nop = parse_option('prefer_number, json_boolean');
@@ -57,35 +57,49 @@ ok( is_amf_boolean (  $a = false ),  'boolean var');
 ABC:
 my $json_true = JSON::XS::true;
 my $json_false = JSON::XS::false;
-#print Dumper( $json_true );
-#print Dumper( amf_roundtrip( $json_true ));
-#print Storable::AMF0->VERSION, "\n";
-#exit;
-# booleans cannot be referenced in amf
 my $object = {
     a => {a => 1},
     jxb1 => $json_true,
     jxb2 => $json_true,
     c => {a => 1, jxb3 => $json_true },
 };
-is_deeply( amf_roundtrip($object), $object, "roundtrip multi-bool" );
-is_deeply( amf_roundtrip( true ), $json_true, '"boolean" comes back as JSON::XS' );
+# AMF0 roundtrip
+is_deeply( amf0_roundtrip($object), $object, "roundtrip multi-bool (A0)" );
+is_deeply( amf0_roundtrip( true ), $json_true, '"boolean" comes back as JSON::XS (A0)' );
+# AMF3 roundtrip
+is_deeply( amf3_roundtrip($object), $object, "roundtrip multi-bool (A3)" );
+is_deeply( amf3_roundtrip( true ), $json_true, '"boolean" comes back as JSON::XS (A3)' );
 
-# Added more accurate tests
-isa_ok( amf_roundtrip( true ) , "JSON::XS::Boolean" );
-isa_ok( amf_roundtrip( $json_true ) , "JSON::XS::Boolean" );
-isa_ok( amf_roundtrip( false ) , "JSON::XS::Boolean" );
-isa_ok( amf_roundtrip( $json_false ) , "JSON::XS::Boolean" );
+# AMF0 Added more accurate tests 
+isa_ok( amf0_roundtrip( true ) , "JSON::XS::Boolean" );
+isa_ok( amf0_roundtrip( $json_true ) , "JSON::XS::Boolean" );
+isa_ok( amf0_roundtrip( false ) , "JSON::XS::Boolean" );
+isa_ok( amf0_roundtrip( $json_false ) , "JSON::XS::Boolean" );
 
+# AMF3 Added more accurate tests 
+isa_ok( amf3_roundtrip( true ) , "JSON::XS::Boolean" );
+isa_ok( amf3_roundtrip( $json_true ) , "JSON::XS::Boolean" );
+isa_ok( amf3_roundtrip( false ) , "JSON::XS::Boolean" );
+isa_ok( amf3_roundtrip( $json_false ) , "JSON::XS::Boolean" );
 sub is_amf_boolean{
-	ord( freeze( $_[0], )) == 1;
+	is_amf0_boolean( $_[0] ) && is_amf3_boolean( $_[0] );
 }
-sub amf_roundtrip {
+sub is_amf0_boolean{
+	ord( freeze0( $_[0], )) == 1;
+}
+sub amf0_roundtrip {
     my $src = shift;
-    #use Data::Dumper;
-	my $amf = freeze( $src );
-    #diag( "stored: $amf" );
-    #diag( "stored(hex): ", unpack("H*", $amf) );
-    my $struct = thaw($amf, $nop);
+	my $amf = freeze0( $src );
+    my $struct = thaw0($amf, $nop);
+    return $struct;
+}
+sub is_amf3_boolean{
+	my $header = ord( freeze3( $_[0] ));
+	return $header == 2 || $header == 3;
+}
+sub amf3_roundtrip {
+    my $src = shift;
+	my $amf = freeze3( $src );
+    my $struct = thaw3($amf, $nop);
     return $struct;
 }
