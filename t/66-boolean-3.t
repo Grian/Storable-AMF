@@ -29,7 +29,7 @@ sub JSON::XS::false{
 	return bless \(my $o = 0), "JSON::XS::Boolean";
 }
 
-my $total = 13 + 6 + 6;
+my $total = 13 + 6 + 6 + 2;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
 my $nop = parse_option('prefer_number, json_boolean');
@@ -84,21 +84,32 @@ isa_ok( amf3_roundtrip( true ) , "JSON::XS::Boolean" );
 isa_ok( amf3_roundtrip( $json_true ) , "JSON::XS::Boolean" );
 isa_ok( amf3_roundtrip( false ) , "JSON::XS::Boolean" );
 isa_ok( amf3_roundtrip( $json_false ) , "JSON::XS::Boolean" );
+
+ok( is_amf_boolean(  $a = JSON::XS::true(), 1), "true" );
+ok( is_amf_boolean(  $a = JSON::XS::false(), 0), "false" );
+
 sub is_amf_boolean{
-	is_amf0_boolean( $_[0] ) && is_amf3_boolean( $_[0] );
+	is_amf0_boolean( @_  ) && is_amf3_boolean( @_  );
 }
 sub is_amf0_boolean{
-	ord( freeze0( $_[0], )) == 1;
+	return '' unless ord( my $s = freeze0( $_[0], )) == 1;
+	return 1 unless defined $_[1];
+	my $byte1 = ord( substr($s,1));
+	return 1 if $_[1]  && $byte1 == 1;
+	return 1 if !$_[1] && $byte1 == 0;
+	return '';
+}
+sub is_amf3_boolean{
+	my $header = ord( freeze3( $_[0] ));
+	return $header == 2 || $header == 3 unless defined $_[1];
+	return $header == 2 if !$_[1];
+	return $header == 3 if $_[1]
 }
 sub amf0_roundtrip {
     my $src = shift;
 	my $amf = freeze0( $src );
     my $struct = thaw0($amf, $nop);
     return $struct;
-}
-sub is_amf3_boolean{
-	my $header = ord( freeze3( $_[0] ));
-	return $header == 2 || $header == 3;
 }
 sub amf3_roundtrip {
     my $src = shift;
