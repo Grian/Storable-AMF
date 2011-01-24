@@ -324,4 +324,9 @@ Revision history for Perl extension Storable::AMF.
 	- boolean support ( JSON::XS and boolean type )
 	- new option ( 'json_boolean' )
 	- thaw( AMF0_FALSE ) now is '' before it was 0
-	- thaw( AMF3_FALSE ) now is '' before it waw 0
+	- thaw( AMF3_FALSE ) now is '' before it was 0
+
+0.90	    2011-01-24
+	- fixed typo in boolean
+	- added more test
+	- remove dependeces in JSON::XS

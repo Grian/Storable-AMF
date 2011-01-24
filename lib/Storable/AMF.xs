@@ -1310,7 +1310,7 @@ STATIC_INLINE SV* amf0_parse_double(pTHX_ struct io_struct * io){
     return newSVnv(io_read_double(io));
 }
 
-inline SV*  gen_boolean(pTHX_ struct io_struct *io, bool value){
+inline SV*  util_boolean(pTHX_ struct io_struct *io, bool value){
     if ( ! (io->options & OPT_JSON_BOOLEAN) ){
 	SV *sv = boolSV( value );
 	// SvREFCNT_inc_simple_void_NN( sv );
@@ -1320,7 +1320,7 @@ inline SV*  gen_boolean(pTHX_ struct io_struct *io, bool value){
 	SV * sv =  value ? newSViv(1) :newSVpvn("",0 );
 	SV * rv = newRV( sv  );
 	HV * stash;
-	stash = gv_stashpvn( "JSON::XS", 8, GV_ADD );
+	stash = gv_stashpvn( "JSON::XS::Boolean", 17, GV_ADD );
 	sv_bless( rv, stash );
 	
 	//Stupid but it works
@@ -1332,7 +1332,7 @@ STATIC_INLINE SV* amf0_parse_boolean(pTHX_ struct io_struct * io){
     bool value; 
     marker = io_read_marker(io);
     value = (marker != '\000');
-    return gen_boolean(aTHX_ io, value);
+    return util_boolean(aTHX_ io, value);
 }
 
 /* 
@@ -1381,13 +1381,13 @@ STATIC_INLINE SV * amf3_parse_null(pTHX_ struct io_struct *io){
 }
 STATIC_INLINE SV * amf3_parse_false(pTHX_ struct io_struct *io){
     SV * RETVALUE;
-    RETVALUE =  gen_boolean( aTHX_ io, 0 );
+    RETVALUE =  util_boolean( aTHX_ io, 0 );
     return RETVALUE;
 }
 
 STATIC_INLINE SV * amf3_parse_true(pTHX_ struct io_struct *io){
     SV * RETVALUE;
-    RETVALUE =  gen_boolean( aTHX_ io, 1 );
+    RETVALUE =  util_boolean( aTHX_ io, 1 );
     return RETVALUE;
 }
 STATIC_INLINE SV * amf3_parse_integer(pTHX_ struct io_struct *io){
