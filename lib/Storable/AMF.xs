@@ -91,6 +91,7 @@
 #define OPT_MILLSEC_DATE  16
 #define OPT_PREFER_NUMBER 32
 #define OPT_JSON_BOOLEAN  64
+#define OPT_MAPPER        128
 
 #define EXPERIMENT1
 
@@ -167,14 +168,6 @@ struct io_struct{
     struct io_amf_option* ext_option;
 };
 
-
-struct io_amf_option{
-    int options;
-    SV *bool_true;
-    SV *bool_false;
-    HV *ext_code;
-    SV *parse_code;
-};
 
 inline void io_register_error(struct io_struct *io, int);
 inline void io_register_error_and_free(pTHX_ struct io_struct *io, int, void *);
@@ -578,6 +571,33 @@ inline void format_one(pTHX_ struct io_struct *io, SV * one){
             ++io->RV_COUNT;
 
             if (sv_isobject(one)) {
+		if ( io->options & OPT_MAPPER ){
+		    GV *to_amf = gv_fetchmethod_autoload (SvSTASH (rv), "TO_AMF", 0);
+		    if ( to_amf ) {
+		    dSP;
+
+		    ENTER; SAVETMPS; PUSHMARK (SP);
+		    XPUSHs (sv_bless (sv_2mortal (newRV_inc (rv)), SvSTASH (rv)));
+
+		    /* calling with G_SCALAR ensures that we always get a 1 return value */
+		    PUTBACK;
+		    call_sv ((SV *)GvCV (to_amf), G_SCALAR);
+		    SPAGAIN;
+
+		    /* catch this surprisingly common error */
+		    if (SvROK (TOPs) && SvRV (TOPs) == rv)
+			croak ("%s::TO_AMF method returned same object as was passed instead of a new one", HvNAME (SvSTASH (rv)));
+
+		    rv = POPs;
+		    PUTBACK;
+
+		    format_one( aTHX_  io, rv);
+
+		    FREETMPS; LEAVE;
+		    return ;
+
+		    }
+		}
                 if (SvTYPE(rv) == SVt_PVHV){
                     format_typed_object(aTHX_  io, (HV *) rv);
                 }

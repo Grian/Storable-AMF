@@ -7,13 +7,14 @@
 
 no warnings 'once';
 #BEGIN { 
-	$totals =  3;
+	$totals =  4;
     no warnings 'once';
 	eval "use Test::More tests => $totals";
 
 	use_ok('Storable::AMF');
 	use_ok('Storable::AMF0');
 	use_ok('Storable::AMF3');
+	use_ok('Storable::AMF::Mapper');
     print STDERR unpack( "H*", pack "d", 12345678), " ";
     Storable::AMF3::endian();
 #	};
