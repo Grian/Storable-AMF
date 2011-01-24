@@ -335,4 +335,6 @@ Revision history for Perl extension Storable::AMF.
 	- added more real tests for boolean support 
 	- added experimental TO_AMF support for AMF0 freeze
 
+0.92	    2011-01-24
+	- added experimental TO_AMF support for AMF3 freeze
 

@@ -1940,6 +1940,36 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
             (void) hv_store(io->hv_object, (char *) (&rv), sizeof (rv), newSViv(io->rc_object), 0);
             ++io->rc_object;
 
+	    if ( io->options && OPT_MAPPER ){
+		if ( sv_isobject( one ) ){
+		    
+		    GV *to_amf = gv_fetchmethod_autoload (SvSTASH (rv), "TO_AMF", 0);
+		    if ( to_amf ) {
+			dSP;
+
+			ENTER; SAVETMPS; PUSHMARK (SP);
+			XPUSHs (sv_bless (sv_2mortal (newRV_inc (rv)), SvSTASH (rv)));
+
+			/* calling with G_SCALAR ensures that we always get a 1 return value */
+			PUTBACK;
+			call_sv ((SV *)GvCV (to_amf), G_SCALAR);
+			SPAGAIN;
+
+			/* catch this surprisingly common error */
+			if (SvROK (TOPs) && SvRV (TOPs) == rv)
+			    croak ("%s::TO_AMF method returned same object as was passed instead of a new one", HvNAME (SvSTASH (rv)));
+
+			rv = POPs;
+			PUTBACK;
+
+			amf3_format_object( aTHX_  io, rv);
+
+			FREETMPS; LEAVE;
+			return ;
+		    }
+		}
+	    }
+
             if (SvTYPE(rv) == SVt_PVAV) 
 		amf3_format_array(aTHX_  io, (AV*) rv);
             else if (SvTYPE(rv) == SVt_PVHV) {
