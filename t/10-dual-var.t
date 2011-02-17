@@ -5,15 +5,15 @@ use ExtUtils::testlib;
 use Storable::AMF0 qw(freeze thaw parse_option);
 use Scalar::Util qw(dualvar);
 eval 'use Test::More tests => 6;';
-my $pref_option = parse_option( '-prefer_number' );
-my $pref_option_plus = parse_option( '+prefer_number' );
+my $pref_number_minus = parse_option( '-prefer_number' );
+my $pref_number_plus  = parse_option( '+prefer_number' );
 my $s0 = freeze dualvar(15, "Hello World!!!");
-my $s1 = freeze dualvar(15, "Hello World!!!"), $pref_option;
-my $s2 = freeze dualvar(15, "Hello World!!!"), $pref_option_plus;
+my $s1 = freeze dualvar(15, "Hello World!!!"), $pref_number_minus;
+my $s2 = freeze dualvar(15, "Hello World!!!"), $pref_number_plus ;
 
 my $s3 = Storable::AMF3::freeze dualvar(15, "Hello World!!!");
-my $s4 = Storable::AMF3::freeze dualvar(15, "Hello World!!!"), $pref_option;
-my $s5 = Storable::AMF3::freeze dualvar(15, "Hello World!!!"), $pref_option_plus;
+my $s4 = Storable::AMF3::freeze dualvar(15, "Hello World!!!"), $pref_number_minus;
+my $s5 = Storable::AMF3::freeze dualvar(15, "Hello World!!!"), $pref_number_plus ;
 
 is(Storable::AMF0::thaw($s0), 15, "Dual var is number (D)");
 is(Storable::AMF0::thaw($s1), "Hello World!!!", "Dual var is string(-N)");
