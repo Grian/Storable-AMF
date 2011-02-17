@@ -342,3 +342,4 @@ Revision history for Perl extension Storable::AMF.
 	-  New tests for roundtrip JSON::XS:Boolean and AMF::boolean
 	-  Fixed convertion from AMF::boolean -> JSON::XS::boolean
 	-  Test typo fix. Extend boolean tests
+	-  Added prefix for all amf0 functions

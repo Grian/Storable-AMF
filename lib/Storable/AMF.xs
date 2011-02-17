@@ -489,16 +489,16 @@ inline void io_write_bytes(pTHX_ struct io_struct* io, const char * const buffer
     io->pos+=len;
 }	
 /* Date checking */
-inline bool util_is_date(SV *one);
+inline bool   util_is_date(SV *one);
 inline double util_date_time(SV *one);
 
-inline void format_one(pTHX_ struct io_struct *io, SV * one);
-inline void format_number(pTHX_ struct io_struct *io, SV * one);
-inline void format_string(pTHX_ struct io_struct *io, SV * one);
-inline void format_strict_array(pTHX_ struct io_struct *io, AV * one);
-inline void format_object(pTHX_ struct io_struct *io, HV * one);
-inline void format_null(pTHX_ struct io_struct *io);
-inline void format_typed_object(pTHX_ struct io_struct *io, HV * one);
+inline void amf0_format_one(pTHX_ struct io_struct *io, SV * one);
+inline void amf0_format_number(pTHX_ struct io_struct *io, SV * one);
+inline void amf0_format_string(pTHX_ struct io_struct *io, SV * one);
+inline void amf0_format_strict_array(pTHX_ struct io_struct *io, AV * one);
+inline void amf0_format_object(pTHX_ struct io_struct *io, HV * one);
+inline void amf0_format_null(pTHX_ struct io_struct *io);
+inline void amf0_format_typed_object(pTHX_ struct io_struct *io, HV * one);
 
 inline bool util_is_date(SV *one){
     if (SvNOKp(one)){
@@ -518,11 +518,11 @@ inline bool util_is_date(SV *one){
 inline double util_date_time(SV *one){
     return (SvNVX(one)*1000);
 }
-inline void format_reference(pTHX_ struct io_struct * io, SV *ref){
+inline void amf0_format_reference(pTHX_ struct io_struct * io, SV *ref){
     io_write_marker(aTHX_  io, MARKER0_REFERENCE);
     io_write_u16(aTHX_  io, SvIV(ref));
 }
-inline void format_scalar_ref(pTHX_ struct io_struct * io, SV *ref){
+inline void amf0_format_scalar_ref(pTHX_ struct io_struct * io, SV *ref){
     const char *const reftype = "REFVAL";
     
     io_write_marker(aTHX_  io, MARKER0_TYPED_OBJECT);
@@ -533,13 +533,13 @@ inline void format_scalar_ref(pTHX_ struct io_struct * io, SV *ref){
     /* type */
     io_write_u16(aTHX_  io, 6);
     io_write_bytes(aTHX_  io, reftype, 6);
-    format_one(aTHX_  io, ref);
+    amf0_format_one(aTHX_  io, ref);
     /* end marker */
     io_write_u16(aTHX_  io, 0);
     io_write_marker(aTHX_  io, MARKER0_OBJECT_END);
 }
 
-inline void format_one(pTHX_ struct io_struct *io, SV * one){
+inline void amf0_format_one(pTHX_ struct io_struct *io, SV * one){
     if (SvROK(one)){
 	if ( sv_isobject( one )){
 	    bool is_perl_bool = 0;
@@ -563,7 +563,7 @@ inline void format_one(pTHX_ struct io_struct *io, SV * one){
         /*  test has stored */
         SV **OK = hv_fetch(io->RV_HASH, (char *)(&rv), sizeof (rv), 1);
         if (SvOK(*OK)) {
-            format_reference(aTHX_  io, *OK);
+            amf0_format_reference(aTHX_  io, *OK);
         }
         else {
             int type = SvTYPE(rv);
@@ -591,7 +591,7 @@ inline void format_one(pTHX_ struct io_struct *io, SV * one){
 		    rv = POPs;
 		    PUTBACK;
 
-		    format_one( aTHX_  io, rv);
+		    amf0_format_one( aTHX_  io, rv);
 
 		    FREETMPS; LEAVE;
 		    return ;
@@ -599,7 +599,7 @@ inline void format_one(pTHX_ struct io_struct *io, SV * one){
 		    }
 		}
                 if (SvTYPE(rv) == SVt_PVHV){
-                    format_typed_object(aTHX_  io, (HV *) rv);
+                    amf0_format_typed_object(aTHX_  io, (HV *) rv);
                 }
 		else if ( util_is_date( rv ) ) {
 		    io_write_marker(aTHX_ io, MARKER0_DATE );
@@ -612,13 +612,13 @@ inline void format_one(pTHX_ struct io_struct *io, SV * one){
                 }
             }
             else if (SvTYPE(rv) == SVt_PVAV) 
-                format_strict_array(aTHX_  io, (AV*) rv);
+                amf0_format_strict_array(aTHX_  io, (AV*) rv);
             else if (SvTYPE(rv) == SVt_PVHV) {
                 io_write_marker(aTHX_  io, MARKER0_OBJECT);
-                format_object(aTHX_  io, (HV*) rv);
+                amf0_format_object(aTHX_  io, (HV*) rv);
             }
             else if ( type != SVt_PVCV && type !=  SVt_PVGV ) {
-                format_scalar_ref(aTHX_  io, (SV*) rv);
+                amf0_format_scalar_ref(aTHX_  io, (SV*) rv);
             }
             else {
                 io->message = "bad type of object in stream";
@@ -631,33 +631,33 @@ inline void format_one(pTHX_ struct io_struct *io, SV * one){
 	    #if defined( EXPERIMENT1 )
 	    if ( (io->options & OPT_PREFER_NUMBER )){
 		if (SvNIOK(one)){
-		    format_number(aTHX_  io, one);
+		    amf0_format_number(aTHX_  io, one);
 		}
 		else {
-		    format_string(aTHX_  io, one);
+		    amf0_format_string(aTHX_  io, one);
 		}
 	    }
 	    else 
 	    #endif
 		if (SvPOK(one)){
-		    format_string(aTHX_  io, one);
+		    amf0_format_string(aTHX_  io, one);
 		}
 		else {
-		    format_number(aTHX_  io, one);
+		    amf0_format_number(aTHX_  io, one);
 		}
         }
         else {
-            format_null(aTHX_  io);
+            amf0_format_null(aTHX_  io);
         }
     }
 }
 
-inline void format_number(pTHX_ struct io_struct *io, SV * one){
+inline void amf0_format_number(pTHX_ struct io_struct *io, SV * one){
 
     io_write_marker(aTHX_  io, MARKER0_NUMBER);
     io_write_double(aTHX_  io, SvNV(one));	
 }
-inline void format_string(pTHX_ struct io_struct *io, SV * one){
+inline void amf0_format_string(pTHX_ struct io_struct *io, SV * one){
 
     /* TODO: process long string */
     if (SvPOK(one)){
@@ -676,10 +676,10 @@ inline void format_string(pTHX_ struct io_struct *io, SV * one){
             io_write_bytes(aTHX_  io, SvPV_nolen(one), SvCUR(one));
         }
     }else{
-        format_null(aTHX_  io);
+        amf0_format_null(aTHX_  io);
     }
 }
-inline void format_strict_array(pTHX_ struct io_struct *io, AV * one){
+inline void amf0_format_strict_array(pTHX_ struct io_struct *io, AV * one){
     int i, len;
     AV * one_array;
     one_array =  one;
@@ -690,14 +690,14 @@ inline void format_strict_array(pTHX_ struct io_struct *io, AV * one){
     for(i = 0; i <= len; ++i){
         SV ** ref_value = av_fetch(one_array, i, 0);
         if (ref_value) {
-            format_one(aTHX_  io, *ref_value);
+            amf0_format_one(aTHX_  io, *ref_value);
         }
         else {
-            format_null(aTHX_  io);
+            amf0_format_null(aTHX_  io);
         }
     }
 }
-inline void format_object(pTHX_ struct io_struct *io, HV * one){
+inline void amf0_format_object(pTHX_ struct io_struct *io, HV * one){
     STRLEN key_len;
     HV *hv;
     HE *he;
@@ -711,42 +711,42 @@ inline void format_object(pTHX_ struct io_struct *io, HV * one){
             value   = HeVAL(he);
             io_write_u16(aTHX_  io, key_len);
             io_write_bytes(aTHX_  io, key_str, key_len);
-            format_one(aTHX_  io, value);
+            amf0_format_one(aTHX_  io, value);
         }
     }
     io_write_u16(aTHX_  io, 0);
     io_write_marker(aTHX_  io, MARKER0_OBJECT_END);
 }
-inline void format_null(pTHX_ struct io_struct *io){
+inline void amf0_format_null(pTHX_ struct io_struct *io){
 
     io_write_marker(aTHX_  io, MARKER0_UNDEFINED);
 }
-inline void format_typed_object(pTHX_ struct io_struct *io,  HV * one){
+inline void amf0_format_typed_object(pTHX_ struct io_struct *io,  HV * one){
     HV* stash = SvSTASH(one);
     char *class_name = HvNAME(stash);
     io_write_marker(aTHX_  io, MARKER0_TYPED_OBJECT);
     io_write_u16(aTHX_  io, (U16) strlen(class_name));
     io_write_bytes(aTHX_  io, class_name, strlen(class_name));
-    format_object(aTHX_  io, one);
+    amf0_format_object(aTHX_  io, one);
 }
 
-STATIC_INLINE SV * parse_one(pTHX_ struct io_struct * io);
+STATIC_INLINE SV * amf0_parse_one(pTHX_ struct io_struct * io);
 
 STATIC_INLINE SV* amf0_parse_boolean(pTHX_ struct io_struct *io);
-STATIC_INLINE SV* parse_object(pTHX_ struct io_struct *io);
-STATIC_INLINE SV* parse_movieclip(pTHX_ struct io_struct *io);
-STATIC_INLINE SV* parse_null(pTHX_ struct io_struct *io);
-STATIC_INLINE SV* parse_undefined(pTHX_ struct io_struct *io);
-STATIC_INLINE SV* parse_reference(pTHX_ struct io_struct *io);
-STATIC_INLINE SV* parse_object_end(pTHX_ struct io_struct *io);
-STATIC_INLINE SV* parse_strict_array(pTHX_ struct io_struct *io);
-STATIC_INLINE SV* parse_ecma_array(pTHX_ struct io_struct *io);
-STATIC_INLINE SV* parse_date(pTHX_ struct io_struct *io);
-STATIC_INLINE SV* parse_long_string(pTHX_ struct io_struct *io);
-STATIC_INLINE SV* parse_unsupported(pTHX_ struct io_struct *io);
-STATIC_INLINE SV* parse_recordset(pTHX_ struct io_struct *io);
-STATIC_INLINE SV* parse_xml_document(pTHX_ struct io_struct *io);
-STATIC_INLINE SV* parse_typed_object(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_object(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_movieclip(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_null(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_undefined(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_reference(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_object_end(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_strict_array(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_ecma_array(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_date(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_long_string(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_unsupported(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_recordset(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_xml_document(pTHX_ struct io_struct *io);
+STATIC_INLINE SV* amf0_parse_typed_object(pTHX_ struct io_struct *io);
 
 inline void io_write_double(pTHX_ struct io_struct *io, double value);
 inline void io_write_marker(pTHX_ struct io_struct * io, char value);
@@ -940,7 +940,7 @@ inline int amf3_read_integer(struct io_struct *io){
     }
     return value;
 }
-STATIC_INLINE SV * parse_utf8(pTHX_ struct io_struct * io){
+STATIC_INLINE SV * amf0_parse_utf8(pTHX_ struct io_struct * io){
     int string_len = io_read_u16(io);
     SV * RETVALUE;
     char *x = io_read_chars(io, string_len);
@@ -951,7 +951,7 @@ STATIC_INLINE SV * parse_utf8(pTHX_ struct io_struct * io){
     return RETVALUE;
 }
 
-STATIC_INLINE SV * parse_object(pTHX_ struct io_struct * io){
+STATIC_INLINE SV * amf0_parse_object(pTHX_ struct io_struct * io){
     HV * obj;
     int len_next;
     char * key;
@@ -983,37 +983,37 @@ STATIC_INLINE SV * parse_object(pTHX_ struct io_struct * io){
             else {
                 io->pos--;
                 key = "";
-                value = parse_one(aTHX_  io);
+                value = amf0_parse_one(aTHX_  io);
             }
         }
         else {
             key = io_read_chars(io, len_next);
-            value = parse_one(aTHX_  io);
+            value = amf0_parse_one(aTHX_  io);
         }
 
         (void) hv_store(obj, key, len_next, value, 0);
     }
 }
 
-STATIC_INLINE SV* parse_movieclip(pTHX_ struct io_struct *io){
+STATIC_INLINE SV* amf0_parse_movieclip(pTHX_ struct io_struct *io){
     SV* RETVALUE;
     io->message = "Movie clip unsupported yet";
     RETVALUE = newSV(0);
     return RETVALUE;
 }
-STATIC_INLINE SV* parse_null(pTHX_ struct io_struct *io){
+STATIC_INLINE SV* amf0_parse_null(pTHX_ struct io_struct *io){
     SV* RETVALUE;
     RETVALUE = newSV(0);
     return RETVALUE;
 }
 
-STATIC_INLINE SV* parse_undefined(pTHX_ struct io_struct *io){
+STATIC_INLINE SV* amf0_parse_undefined(pTHX_ struct io_struct *io){
     SV* RETVALUE;
     RETVALUE = newSV(0);
     return RETVALUE;
 }
 
-STATIC_INLINE SV* parse_reference(pTHX_ struct io_struct *io){
+STATIC_INLINE SV* amf0_parse_reference(pTHX_ struct io_struct *io){
     SV* RETVALUE;
     int object_offset;
     AV * ar_refs;
@@ -1029,12 +1029,12 @@ STATIC_INLINE SV* parse_reference(pTHX_ struct io_struct *io){
     return RETVALUE;
 }
 
-STATIC_INLINE SV* parse_object_end(pTHX_ struct io_struct *io){
+STATIC_INLINE SV* amf0_parse_object_end(pTHX_ struct io_struct *io){
     io_read_marker(io);
     return 0;
 }
 
-STATIC_INLINE SV* parse_strict_array(pTHX_ struct io_struct *io){
+STATIC_INLINE SV* amf0_parse_strict_array(pTHX_ struct io_struct *io){
     SV* RETVALUE;
     int array_len;
     AV* this_array;
@@ -1048,7 +1048,7 @@ STATIC_INLINE SV* parse_strict_array(pTHX_ struct io_struct *io){
     av_push(refs, RETVALUE = newRV_noinc((SV*) this_array));
 
     for(i=0; i<array_len; ++i){
-        av_push(this_array, parse_one(aTHX_  io));
+        av_push(this_array, amf0_parse_one(aTHX_  io));
     }
     if (SvREFCNT(RETVALUE) > 1 && io->options & OPT_STRICT)
     io_register_error(io, ERR_RECURRENT_OBJECT);
@@ -1057,7 +1057,7 @@ STATIC_INLINE SV* parse_strict_array(pTHX_ struct io_struct *io){
     return RETVALUE;
 }
 
-STATIC_INLINE SV* parse_ecma_array(pTHX_ struct io_struct *io){
+STATIC_INLINE SV* amf0_parse_ecma_array(pTHX_ struct io_struct *io){
     SV* RETVALUE;
 
     U32 array_len;
@@ -1091,13 +1091,13 @@ STATIC_INLINE SV* parse_ecma_array(pTHX_ struct io_struct *io){
 
         ok = ((key_len == 1) && (IS_NUMBER_IN_UV & grok_number(key_ptr, key_len, &index)) &&	 (index < array_len ));
         if (ok){
-            av_store(this_array, index, parse_one(aTHX_  io));
+            av_store(this_array, index, amf0_parse_one(aTHX_  io));
         }
         else {
             if (((key_len) == 6  &&  strnEQ(key_ptr, "length", 6))){
                 ok = 1;
                 array_len++; /* safe for flash v.9.0 */
-                sv_2mortal( parse_one(aTHX_  io));
+                sv_2mortal( amf0_parse_one(aTHX_  io));
             }
             else {
                 ok = 0;
@@ -1115,7 +1115,7 @@ STATIC_INLINE SV* parse_ecma_array(pTHX_ struct io_struct *io){
                 #endif
                 if ((IS_NUMBER_IN_UV & grok_number(s, key_len, &index)) &&
                     (index < array_len)){
-                    av_store(this_array, index, parse_one(aTHX_  io));
+                    av_store(this_array, index, amf0_parse_one(aTHX_  io));
                     #ifdef TRACEA
                     fprintf( stderr, "index =%d, position %d\n", i, io_position(io));
                     #endif
@@ -1127,7 +1127,7 @@ STATIC_INLINE SV* parse_ecma_array(pTHX_ struct io_struct *io){
                     }
                     else {
                         array_len++;
-                        sv_2mortal( parse_one(aTHX_  io));
+                        sv_2mortal( amf0_parse_one(aTHX_  io));
                     }
                 }
             }
@@ -1163,12 +1163,12 @@ STATIC_INLINE SV* parse_ecma_array(pTHX_ struct io_struct *io){
             sv_2mortal(ref);
         }
         io_set_position(io, position);
-        RETVALUE = parse_object(aTHX_  io);
+        RETVALUE = amf0_parse_object(aTHX_  io);
     }
     return RETVALUE;
 }
 
-STATIC_INLINE SV* parse_date(pTHX_ struct io_struct *io){
+STATIC_INLINE SV* amf0_parse_date(pTHX_ struct io_struct *io){
     SV* RETVALUE;
     double time;
     int tz;
@@ -1183,7 +1183,7 @@ STATIC_INLINE SV* parse_date(pTHX_ struct io_struct *io){
     return RETVALUE;
 }
 
-STATIC_INLINE SV* parse_long_string(pTHX_ struct io_struct *io){
+STATIC_INLINE SV* amf0_parse_long_string(pTHX_ struct io_struct *io){
     SV* RETVALUE;
     STRLEN len;
     len = io_read_u32(io);
@@ -1194,17 +1194,17 @@ STATIC_INLINE SV* parse_long_string(pTHX_ struct io_struct *io){
     return RETVALUE;
 }
 
-STATIC_INLINE SV* parse_unsupported(pTHX_ struct io_struct *io){
+STATIC_INLINE SV* amf0_parse_unsupported(pTHX_ struct io_struct *io){
     io_register_error(io, ERR_UNIMPLEMENTED);
     return 0;
 }
-STATIC_INLINE SV* parse_recordset(pTHX_ struct io_struct *io){
+STATIC_INLINE SV* amf0_parse_recordset(pTHX_ struct io_struct *io){
     io_register_error(io, ERR_UNIMPLEMENTED);
     return 0;
 }
-STATIC_INLINE SV* parse_xml_document(pTHX_ struct io_struct *io){
+STATIC_INLINE SV* amf0_parse_xml_document(pTHX_ struct io_struct *io){
     SV* RETVALUE;
-    RETVALUE = parse_long_string(aTHX_  io);
+    RETVALUE = amf0_parse_long_string(aTHX_  io);
     SvREFCNT_inc_simple_void_NN(RETVALUE);
     av_push(io->refs, RETVALUE);
     return RETVALUE;
@@ -1255,14 +1255,14 @@ inline SV *parse_scalar_ref(pTHX_ struct io_struct *io){
                 if (strncmp(key, "REFVAL", 6) || value )
                     io_register_error_and_free(aTHX_ io, ERR_BAD_REFVAL, value);
                 
-                value = parse_one(aTHX_  io);
+                value = amf0_parse_one(aTHX_  io);
             }
             else {
                 io_register_error_and_free(aTHX_ io, ERR_BAD_REFVAL, value);
             }
     }
 }
-STATIC_INLINE SV* parse_typed_object(pTHX_ struct io_struct *io){
+STATIC_INLINE SV* amf0_parse_typed_object(pTHX_ struct io_struct *io){
     SV* RETVALUE;
     HV *stash;
     int len;
@@ -1282,7 +1282,7 @@ STATIC_INLINE SV* parse_typed_object(pTHX_ struct io_struct *io){
         stash = gv_stashpvn((char *)io->pos, len, GV_ADD );
     }
     io->pos+=len;
-    RETVALUE = parse_object(aTHX_  io);
+    RETVALUE = amf0_parse_object(aTHX_  io);
     if (stash) 
     sv_bless(RETVALUE, stash);
     return RETVALUE;
@@ -2026,21 +2026,21 @@ typedef SV* (*parse_sub)(pTHX_ struct io_struct *io);
 parse_sub parse_subs[] = {
     &amf0_parse_double,
     &amf0_parse_boolean,
-    &parse_utf8,
-    &parse_object,
-    &parse_movieclip,
-    &parse_null,
-    &parse_undefined,
-    &parse_reference,
-    &parse_ecma_array,
-    &parse_object_end,
-    &parse_strict_array,
-    &parse_date,
-    &parse_long_string,
-    &parse_unsupported,
-    &parse_recordset,
-    &parse_xml_document,
-    &parse_typed_object
+    &amf0_parse_utf8,
+    &amf0_parse_object,
+    &amf0_parse_movieclip,
+    &amf0_parse_null,
+    &amf0_parse_undefined,
+    &amf0_parse_reference,
+    &amf0_parse_ecma_array,
+    &amf0_parse_object_end,
+    &amf0_parse_strict_array,
+    &amf0_parse_date,
+    &amf0_parse_long_string,
+    &amf0_parse_unsupported,
+    &amf0_parse_recordset,
+    &amf0_parse_xml_document,
+    &amf0_parse_typed_object
 };
 
 parse_sub amf3_parse_subs[] = {
@@ -2071,7 +2071,7 @@ inline SV * amf3_parse_one(pTHX_ struct io_struct * io){
 	return 0; /* Never reach this statement */
     }
 }
-STATIC_INLINE SV * parse_one(pTHX_ struct io_struct * io){
+STATIC_INLINE SV * amf0_parse_one(pTHX_ struct io_struct * io){
     unsigned char marker;
     marker = (unsigned char) io_read_marker(io);
     if ( marker < ARRAY_SIZE( parse_subs )){
@@ -2248,7 +2248,7 @@ thaw(SV *data, ...)
                 io_in_destroy(aTHX_  &io_record, 0); /* all obects */
             }
             else {
-                retvalue = (SV*) (parse_one(aTHX_  &io_record));
+                retvalue = (SV*) (amf0_parse_one(aTHX_  &io_record));
                 retvalue = sv_2mortal(retvalue);
                 if (io_record.pos!=io_record.end){
                     if (io_record.options & OPT_RAISE_ERROR){
@@ -2309,7 +2309,7 @@ deparse_amf(SV *data, ...)
             sv_2mortal(io_self);
             if ( !(error_code = Sigsetjmp(io_record.target_error, 0))){
                 
-                retvalue = (SV*) (parse_one(aTHX_  &io_record));
+                retvalue = (SV*) (amf0_parse_one(aTHX_  &io_record));
                 retvalue = sv_2mortal(retvalue);
                 sv_setsv(ERRSV, &PL_sv_undef);
                 if (GIMME_V == G_ARRAY){
@@ -2369,7 +2369,7 @@ void freeze(SV *data, ... )
             io_record.options = SvIV(opt);
         };
         if (!(error_code = Sigsetjmp(io_record.target_error, 0))){
-            format_one(aTHX_  &io_record, data);
+            amf0_format_one(aTHX_  &io_record, data);
             retvalue = sv_2mortal(io_buffer(&io_record));
             XPUSHs(retvalue);
             sv_setsv(ERRSV, &PL_sv_undef);
