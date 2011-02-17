@@ -15,6 +15,7 @@ my $s3 = Storable::AMF3::freeze dualvar(15, "Hello World!!!");
 my $s4 = Storable::AMF3::freeze dualvar(15, "Hello World!!!"), $pref_number_minus;
 my $s5 = Storable::AMF3::freeze dualvar(15, "Hello World!!!"), $pref_number_plus ;
 
+printf STDERR "      ord(+-)=%d %d. -number=%d\n", ord("+"), ord("-"), $pref_number_minus;
 is(Storable::AMF0::thaw($s0), 15, "Dual var is number (D)");
 is(Storable::AMF0::thaw($s1), "Hello World!!!", "Dual var is string(-N)");
 is(Storable::AMF0::thaw($s2), 15, "Dual var is number (+N)");
