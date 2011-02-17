@@ -343,3 +343,6 @@ Revision history for Perl extension Storable::AMF.
 	-  Fixed convertion from AMF::boolean -> JSON::XS::boolean
 	-  Test typo fix. Extend boolean tests
 	-  Added prefix for all amf0 functions
+	-  Added test for bigendian boolean ( darwin + IRIX )
+	
+	

@@ -52,7 +52,7 @@ t/62-basic-ext.t
 t/63-parse-option.t
 t/64-prefer-number.t
 t/65-prefer-number3.t
-t/66-boolean-3.t
+t/66-boolean.t
 t/67-boolean-real.t
 t/68-boolean-json.t
 t/69-to_AMF-experimental.t

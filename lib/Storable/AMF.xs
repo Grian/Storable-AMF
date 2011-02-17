@@ -347,7 +347,7 @@ inline SV * io_buffer(struct io_struct *io){
 }
 
 inline double io_read_double(struct io_struct *io);
-inline char io_read_marker(struct io_struct * io);
+inline unsigned char io_read_marker(struct io_struct * io);
 inline int io_read_u8(struct io_struct * io);
 inline int io_read_u16(struct io_struct * io);
 inline int io_read_u32(struct io_struct * io);
@@ -786,7 +786,7 @@ inline char *io_read_chars(struct io_struct *io, int len){
     return pos;
 }
 
-inline char io_read_marker(struct io_struct * io){
+inline unsigned char io_read_marker(struct io_struct * io){
     const int step = 1;
     unsigned char marker;
     io_require(io, step);
@@ -1309,7 +1309,7 @@ inline SV*  util_boolean(pTHX_ struct io_struct *io, bool value){
     }
 }
 STATIC_INLINE SV* amf0_parse_boolean(pTHX_ struct io_struct * io){
-    char marker;
+    unsigned char marker;
     bool value; 
     marker = io_read_marker(io);
     value = (marker != '\000');
@@ -2597,14 +2597,14 @@ perl_date(SV *date)
 void
 parse_option(char * s, int options=0)
     PREINIT: 
-    I8 s_strict;
-    I8 s_utf8_decode;
-    I8 s_utf8_encode;
-    I8 s_milldate;
-    I8 s_raise_error;
-    I8 s_prefer_number;
-    I8 s_ext_boolean;
-    I8 sign;
+    int s_strict;
+    int s_utf8_decode;
+    int s_utf8_encode;
+    int s_milldate;
+    int s_raise_error;
+    int s_prefer_number;
+    int s_ext_boolean; /* I8 -> int*/
+    int sign;  
     char *word;
     char *current;
     bool error;
@@ -2624,7 +2624,7 @@ parse_option(char * s, int options=0)
     s_raise_error = 0;
     s_prefer_number = 0;
     s_ext_boolean   = 0;
-    options       = 0;
+    options         = 0;
     current = s;
     for( ;*current && ( !isALPHA( *current ) && *current!='+' && *current!='-' ) ; ++current ); 
 
@@ -2669,7 +2669,7 @@ parse_option(char * s, int options=0)
 		s_prefer_number = sign;
 	    }
 	    else {
-		error = sign;
+		error = 1;
 	    };
 	    break;
 	case   12:

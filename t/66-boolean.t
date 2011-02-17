@@ -29,7 +29,7 @@ sub JSON::XS::false{
 	return bless \(my $o = 0), "JSON::XS::Boolean";
 }
 
-my $total = 17 + 8 + 8 + 2 ;
+my $total = 17 + 8 + 8 + 2 + 5;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
 my $nop = parse_option('prefer_number, json_boolean');
@@ -76,6 +76,14 @@ my $object2 = {
     jxb2 => $json_false,
     c => {a => 1, jxb3 => $json_false },
 };
+# AMF0 half-trip (false, true)
+
+is_deeply( thaw0(chr(1).chr(0), $nop), $json_false, "halftrip false (A0)" );
+is_deeply( thaw0(chr(1).chr(1), $nop), $json_true,  "halftrip true (A0)" );
+is_deeply( thaw0(chr(1).chr(2), $nop), $json_true,  "halftrip true2 (A0)" );
+is_deeply( thaw0(chr(1).chr(254), $nop), $json_true,  "halftrip true254 (A0)" );
+is_deeply( thaw0(chr(1).chr(255), $nop), $json_true,  "halftrip true255 (A0)" );
+
 # AMF0 roundtrip
 is_deeply( amf0_roundtrip($object1), $object1, "roundtrip_1 multi-bool (A0)" );
 is_deeply( amf0_roundtrip($object2), $object2, "roundtrip_2 multi-bool (A0)" );
