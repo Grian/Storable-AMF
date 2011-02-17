@@ -1298,7 +1298,7 @@ inline SV*  util_boolean(pTHX_ struct io_struct *io, bool value){
 	return sv;
     } 
     else {
-	SV * sv =  value ? newSViv(1) :newSVpvn("",0 );
+	SV * sv =  value ? newSViv(1) :newSViv( 0 );
 	SV * rv = newRV_noinc( sv  );
 	HV * stash;
 	stash = gv_stashpvn( "JSON::XS::Boolean", 17, GV_ADD );

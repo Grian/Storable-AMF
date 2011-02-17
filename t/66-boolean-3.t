@@ -29,7 +29,7 @@ sub JSON::XS::false{
 	return bless \(my $o = 0), "JSON::XS::Boolean";
 }
 
-my $total = 13 + 6 + 6 + 2;
+my $total = 17 + 8 + 8 + 2 ;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
 my $nop = parse_option('prefer_number, json_boolean');
@@ -41,6 +41,10 @@ ok( !is_amf_boolean ( ! !1 ),    'perl bool context not converted(t)');
 ok( !is_amf_boolean ( ! !0 ),    'perl bool context not converted(f)');
 ok( is_amf_boolean ( true ),   '"boolean" true');
 ok( is_amf_boolean ( false ),   '"boolean" false');
+ok( is_amf_boolean ( boolean(undef) ),   '"boolean(undef)"');
+ok( is_amf_boolean ( boolean(0) ),		 '"boolean(0)"');
+ok( is_amf_boolean ( boolean('') ),       "boolean('')");
+ok( is_amf_boolean ( boolean(1) ),       '"boolean(1)"');
 ok( is_amf_boolean ( JSON::XS::true ),   'JSON::XS::true');
 ok( is_amf_boolean ( JSON::XS::false ),   'JSON::XS::false');
 
@@ -60,18 +64,28 @@ my $json_false = JSON::XS::false;
 my $boolean_true = true;
 my $boolean_false = false;
 
-my $object = {
+my $object1 = {
     a => {a => 1},
     jxb1 => $json_true,
     jxb2 => $json_true,
     c => {a => 1, jxb3 => $json_true },
 };
+my $object2 = {
+    a => {a => 1},
+    jxb1 => $json_false,
+    jxb2 => $json_false,
+    c => {a => 1, jxb3 => $json_false },
+};
 # AMF0 roundtrip
-is_deeply( amf0_roundtrip($object), $object, "roundtrip multi-bool (A0)" );
-is_deeply( amf0_roundtrip( true ), $json_true, '"boolean" comes back as JSON::XS (A0)' );
+is_deeply( amf0_roundtrip($object1), $object1, "roundtrip_1 multi-bool (A0)" );
+is_deeply( amf0_roundtrip($object2), $object2, "roundtrip_2 multi-bool (A0)" );
+is_deeply( amf0_roundtrip( true ),  $json_true,  '"boolean" comes back as JSON::XS (A0)' );
+is_deeply( amf0_roundtrip( false ), $json_false, '"boolean" comes back as JSON::XS (A0)' );
 # AMF3 roundtrip
-is_deeply( amf3_roundtrip($object), $object, "roundtrip multi-bool (A3)" );
-is_deeply( amf3_roundtrip( true ), $json_true, '"boolean" comes back as JSON::XS (A3)' );
+is_deeply( amf3_roundtrip($object1), $object1, "roundtrip_1 multi-bool (A3)" );
+is_deeply( amf3_roundtrip($object2), $object2, "roundtrip_2 multi-bool (A3)" );
+is_deeply( amf3_roundtrip( true ),  $json_true, '"boolean" comes back as JSON::XS (A3)' );
+is_deeply( amf3_roundtrip( false ), $json_false, '"boolean" comes back as JSON::XS (A3)' );
 
 # AMF0 Added more accurate tests 
 isa_ok( amf0_roundtrip( true ) , "JSON::XS::Boolean" );

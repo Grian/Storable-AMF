@@ -15,7 +15,7 @@ use Devel::Peek;
 
 eval {
 	require JSON::XS;
-	boolean->import(); # imports true false isTrue isFalse
+	JSON::XS->import('encode_json', 'decode_json'); 
 };
 if ( $@ ){
 	eval "use Test::More qw(skip_all) => 'JSON::XS hasn\\'t installed'";
@@ -23,7 +23,7 @@ if ( $@ ){
 }
 
 
-my $total = 14;
+my $total = 18;
 eval "use Test::More tests=>$total;";
 warn($@) && exit if $@;
 my $nop = parse_option('prefer_number, json_boolean');
@@ -48,6 +48,13 @@ ok( is_amf_boolean (  $a = JSON::XS::false()),  'boolean var');
 
 ok( is_amf_boolean(  $a = JSON::XS::true(), 1), "true" );
 ok( is_amf_boolean(  $a = JSON::XS::false(), 0), "false" );
+
+# JSON -AMF roundtrip
+is( encode_json( thaw( freeze( JSON::XS::true() ), $nop)),  'true', "round trip JS::XS (true)");
+is( encode_json( thaw( freeze( JSON::XS::false() ), $nop)), 'false', "round trip JS::XS (false)");
+
+is( thaw(freeze(decode_json('true' )) , $nop),  JSON::XS::true() , "round trip(r) JS::XS (true)");
+is( thaw(freeze(decode_json('false')) , $nop),  JSON::XS::false(), "round trip(r) JS::XS (false)");
 
 sub is_amf_boolean{
 	is_amf0_boolean( @_  ) && is_amf3_boolean( @_  );
