@@ -29,7 +29,7 @@ sub JSON::XS::false{
 	return bless \(my $o = 0), "JSON::XS::Boolean";
 }
 
-my $total = 17 + 8 + 8 + 2 + 5;
+my $total = 17 + 8 + 8 + 2 + 11;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
 my $nop = parse_option('prefer_number, json_boolean');
@@ -77,17 +77,27 @@ my $object2 = {
     c => {a => 1, jxb3 => $json_false },
 };
 # AMF0 half-trip (false, true)
+is_deeply( freeze0($json_false), chr(1).chr(0), "halftrip false (r-A0)" );
+is_deeply( freeze0($json_true) , chr(1).chr(1), "halftrip true  (r-A0)" );
 
 is_deeply( thaw0(chr(1).chr(0), $nop), $json_false, "halftrip false (A0)" );
-is_deeply( thaw0(chr(1).chr(1), $nop), $json_true,  "halftrip true (A0)" );
+is_deeply( thaw0(chr(1).chr(1), $nop), $json_true,  "halftrip true  (A0)" );
 is_deeply( thaw0(chr(1).chr(2), $nop), $json_true,  "halftrip true2 (A0)" );
 is_deeply( thaw0(chr(1).chr(254), $nop), $json_true,  "halftrip true254 (A0)" );
 is_deeply( thaw0(chr(1).chr(255), $nop), $json_true,  "halftrip true255 (A0)" );
 
+# AMF3 half-trip (false, true)
+
+is_deeply( thaw3(chr(2), $nop), $json_false, "halftrip false (A3)" );
+is_deeply( thaw3(chr(3), $nop), $json_true,  "halftrip true  (A3)" );
+
+is( freeze3( $json_false), chr(2),  "halftrip false (r-A3)" );
+is( freeze3( $json_true ), chr(3),  "halftrip true  (r-A3)" );
+
 # AMF0 roundtrip
 is_deeply( amf0_roundtrip($object1), $object1, "roundtrip_1 multi-bool (A0)" );
 is_deeply( amf0_roundtrip($object2), $object2, "roundtrip_2 multi-bool (A0)" );
-is_deeply( amf0_roundtrip( true ),  $json_true,  '"boolean" comes back as JSON::XS (A0)' );
+is_deeply( amf0_roundtrip( true  ),  $json_true,  '"boolean" comes back as JSON::XS (A0)' );
 is_deeply( amf0_roundtrip( false ), $json_false, '"boolean" comes back as JSON::XS (A0)' );
 # AMF3 roundtrip
 is_deeply( amf3_roundtrip($object1), $object1, "roundtrip_1 multi-bool (A3)" );

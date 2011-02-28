@@ -5,5 +5,4 @@
     - add limit memory behavior (Error message when no mem)
     - max array opt
     - add examples
-    - add test for boolean support 
     - add documentation for boolean, basic externalized objects, boolean_json

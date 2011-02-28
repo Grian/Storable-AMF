@@ -385,12 +385,13 @@ inline void io_write_double(pTHX_ struct io_struct *io, double value){
 }
 inline void io_write_marker(pTHX_ struct io_struct * io, char value)	{
     const int step = 1;
-    union vvv{
-        signed   int iv;
-        unsigned int uv;
-        double nv;
-        char   c[8];
-    } ;
+    io_reserve(aTHX_  io, 1);
+    io->pos[0]= value;
+    io->pos+=step;
+    return;
+}
+inline void io_write_uchar (pTHX_ struct io_struct * io, unsigned char value)	{
+    const int step = 1;
     io_reserve(aTHX_  io, 1);
     io->pos[0]= value;
     io->pos+=step;
@@ -408,7 +409,7 @@ inline void io_write_u8(pTHX_ struct io_struct * io, unsigned int value){
     v.uv = value;
     MOVERFLOW(value, 255, "write_u8");
     io_reserve(aTHX_  io, 1);
-    io->pos[0]= v.c[0];
+    io->pos[0]= v.c[GET_NBYTE(step, 0,value)]; 
     io->pos+=step ;
     return;
 }
@@ -552,7 +553,7 @@ inline void amf0_format_one(pTHX_ struct io_struct *io, SV * one){
 	    if ( is_perl_bool ){
 		io_write_marker(aTHX_ io, MARKER0_BOOLEAN );
 		/*  TODO SvTRUE can call die or something like */
-		io_write_u8(aTHX_  io, SvTRUE( SvRV( one  )) ? 1 : 0);
+		io_write_uchar(aTHX_  io, SvTRUE( SvRV( one  )) ? 1 : 0);
 		return ;
 	    }
 	}
@@ -750,6 +751,7 @@ STATIC_INLINE SV* amf0_parse_typed_object(pTHX_ struct io_struct *io);
 
 inline void io_write_double(pTHX_ struct io_struct *io, double value);
 inline void io_write_marker(pTHX_ struct io_struct * io, char value);
+inline void io_write_uchar (pTHX_ struct io_struct * io, unsigned char value);
 inline void io_write_u8(pTHX_ struct io_struct * io, unsigned int value);
 inline void io_write_s16(pTHX_ struct io_struct * io, signed int value);
 inline void io_write_u16(pTHX_ struct io_struct * io, unsigned int value);
@@ -1908,7 +1910,6 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
 	    }
 	    if ( is_perl_bool ){
 		io_write_marker(aTHX_ io, (SvTRUE( SvRV( one )) ? MARKER3_TRUE : MARKER3_FALSE ) );
-		/* io_write_u8(aTHX_  io, SvTRUE( SvRV( one )) ? 1 : 0); */
 		return ;
 	    }
 	}
