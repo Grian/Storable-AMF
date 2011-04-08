@@ -148,3 +148,11 @@ t/AMF0/zero.pack
 t/AMF3/bug.amf3
 t/AMF3/bug.dump
 META.yml
+examples/amf0_bench.pl
+examples/amf_packet1
+examples/amf_packet2
+examples/amf_packet3
+examples/amf_packet4
+examples/amf_result3
+examples/amf_packet_dumper.pl
+examples/hulala-amf2human.pl

@@ -44,7 +44,7 @@
 #define MARKER3_OBJECT	  '\x0a'
 #define MARKER3_XML	  '\x0b'
 #define MARKER3_BYTEARRAY '\x0c'
-#define MARKER3_AMF_PLUS	  '\x11' /* Not supported */
+#define MARKER3_AMF_PLUS	  '\x11' 
 
 #define MARKER0_NUMBER		  '\x00'
 #define MARKER0_BOOLEAN		  '\x01'
@@ -63,19 +63,19 @@
 #define MARKER0_RECORDSET	  '\x0e'
 #define MARKER0_XML_DOCUMENT      '\x0f'
 #define MARKER0_TYPED_OBJECT	  '\x10'
-#define MARKER0_AMF_PLUS	  '\x11' /*not supported */
+#define MARKER0_AMF_PLUS	  '\x11' 
 
 #define ERR_EOF 1
-#define ERR_REF 2
+#define ERR_AMF0_REF 2
 #define ERR_MARKER 3
 #define ERR_BAD_OBJECT 4
 #define ERR_OVERFLOW 5
 #define ERR_UNIMPLEMENTED 6
-#define ERR_BADREF 7
+#define ERR_BAD_STRING_REF 7
 #define ERR_BAD_DATE_REF 8
 #define ERR_BAD_OBJECT_REF 9
 #define ERR_BAD_ARRAY_REF 10
-#define ERR_BAD_STRING_REF 11
+#define ERR_BAD_STRING_REF_UNUSED 11
 #define ERR_BAD_TRAIT_REF 12
 #define ERR_BAD_XML_REF 13
 #define ERR_BAD_BYTEARRAY_REF 14
@@ -83,6 +83,7 @@
 #define ERR_INT_OVERFLOW 16
 #define ERR_RECURRENT_OBJECT 17
 #define ERR_BAD_REFVAL  18
+#define ERR_INTERNAL    19
 
 #define OPT_STRICT        1
 #define OPT_DECODE_UTF8   2
@@ -131,6 +132,27 @@
 #define SIGN_BOOL_APPLY( obj, sign, mask ) ( sign > 0 ? obj|=mask : sign <0 ? obj&=~mask : 0 ) 
 #define DEFAULT_MASK OPT_PREFER_NUMBER
 
+char *error_messages[] = {
+    "ERR_EOF", 
+    "ERR_BAD_AMF0_REF", 
+    "ERR_MARKER", 
+    "ERR_BAD_OBJECT", 
+    "ERR_OVERFLOW", 
+    "ERR_UNIMPLEMENTED", 
+    "ERR_BAD_STRING_REF", 
+    "ERR_BAD_DATE_REF", 
+    "ERR_BAD_OBJECT_REF", 
+    "ERR_BAD_ARRAY_REF", 
+    "ERR_BAD_STRING_REF_UNUSED",
+    "ERR_BAD_TRAIT_REF",
+    "ERR_BAD_XML_REF", 
+    "ERR_BAD_BYTEARRAY_REF", 
+    "ERR_EXTRA_BYTE", 
+    "ERR_INT_OVERFLOW", 
+    "ERR_RECURRENT_OBJECT", 
+    "ERR_BAD_REFVAL",  
+    "ERR_INTERNAL"
+};
 struct io_amf_option;
 /*#define TRACE0 */
 struct amf3_restore_point{
@@ -254,24 +276,32 @@ inline void io_test_eof(pTHX_ struct io_struct *io){
 }
 void io_format_error(pTHX_ struct io_struct *io ){
     int error_code = io->error_code;
+    char *message;
+    if ( error_code < 1 || error_code > ARRAY_SIZE( error_messages )){
+	error_code = ERR_INTERNAL;
+    };
+    message = error_messages[ error_code - 1];
+
+
+
     if ( io->status == 'r' ){
 	io_in_destroy(aTHX_  io, 0); /* all objects */
 	if (io->options & OPT_RAISE_ERROR){
-	    croak("Parse AMF%d: (ERR-%d)", io->version, error_code);
+	    croak("Parse AMF%d: %s (ERR-%d)", io->version, message, error_code);
 	}
 	else {
 	    sv_setiv(ERRSV, error_code);
-	    sv_setpvf(ERRSV, "Parse AMF%d: (ERR-%d)", io->version, error_code);
+	    sv_setpvf(ERRSV, "Parse AMF%d: %s (ERR-%d)", io->version, message, error_code);
 	    SvIOK_on(ERRSV);
 	}
     }
     else { /* io->status == 'w' */
 	if (io->options & OPT_RAISE_ERROR){
-	    croak("Format AMF%d: (ERR-%d)", io->version, error_code);
+	    croak("Format AMF%d: %s (ERR-%d)", io->version, message, error_code);
 	}
 	else {
 	    sv_setiv(ERRSV, error_code);
-	    sv_setpvf(ERRSV, "Format AMF%d: (ERR-%d)", io->version, error_code);
+	    sv_setpvf(ERRSV, "Format AMF%d: %s (ERR-%d)", io->version, message, error_code);
 	    SvIOK_on(ERRSV);
 	}
     }
@@ -1064,7 +1094,7 @@ STATIC_INLINE SV* amf0_parse_reference(pTHX_ struct io_struct *io){
     object_offset = io_read_u16(io);
     ar_refs = (AV *) io->refs;
     if (object_offset > av_len(ar_refs)){
-        io_register_error(io, ERR_REF);
+        io_register_error(io, ERR_AMF0_REF);
     }
     else {
         RETVALUE = *av_fetch(ar_refs, object_offset, 0);
@@ -1449,7 +1479,7 @@ inline char * amf3_read_string(pTHX_ struct io_struct *io, int ref_len, STRLEN *
         }
         else {
             /* Exception: May be there throw some */
-            io_register_error(io, ERR_BADREF);
+            io_register_error(io, ERR_BAD_STRING_REF);
 	    return 0; /* Never reach this lime */
         }
     }
