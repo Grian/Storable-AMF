@@ -4,7 +4,6 @@ MANIFEST
 TODO
 README
 .gitignore
-examples/amf0_bench.pl
 t/GrianUtils.pm
 lib/Storable/ppport.h
 lib/Storable/AMF.pm
@@ -148,11 +147,12 @@ t/AMF0/zero.pack
 t/AMF3/bug.amf3
 t/AMF3/bug.dump
 META.yml
-examples/amf0_bench.pl
-examples/amf_packet1
-examples/amf_packet2
-examples/amf_packet3
-examples/amf_packet4
-examples/amf_result3
-examples/amf_packet_dumper.pl
+examples/abench.pl
 examples/hulala-amf2human.pl
+examples/packet_dumper.pl
+examples/packets/amf_packet1
+examples/packets/amf_packet2
+examples/packets/amf_packet3
+examples/packets/amf_packet4
+examples/packets/failed_chunk
+examples/packets/input
