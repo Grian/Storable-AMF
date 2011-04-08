@@ -346,7 +346,13 @@ Revision history for Perl extension Storable::AMF.
 	-  Added test for bigendian boolean ( darwin + IRIX )
 	
 	
-0.94	    2011-02-28
+0.94	    2011-02-28  --- 2011-04-08
 	- Extend boolean test
 	- fix routine io_write_u8
 	- fix amf0 boolean format
+	- added cope of amf-plus-marker  
+	- Rewrite of error reporting
+	- ( Dev remove &io_record )
+	
+
+
