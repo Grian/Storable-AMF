@@ -29,8 +29,9 @@ if ( @ARGV ){
 	}
 }
 else {
-	for my $file ( 'amf_packet1', 'amf_packet2'  ){
+	for my $file ( 'input','amf_result3', 'amf_packet1', 'amf_packet2'  ){
 		main( $file );
+		last;
 	}
 }
 
@@ -105,6 +106,7 @@ sub deparse_packet {
             }
             substr $buf, 0, 4, '';    # skip length
 
+#print STDERR Dumper( $class, $totalBodies, $body, ord $buf, Storable::AMF0::deparse_amf($buf, $raise_error ));exit;
             if ( ord $buf == 10 ) {
                 substr $buf, 0, 1, '';
                 my $num = unpack "N", substr $buf, 0, 4, '';
@@ -124,7 +126,7 @@ sub deparse_packet {
                 my ( $obj, $length ) =
                   ( $class->{encoding} == 0 )
                   ? Storable::AMF0::deparse_amf($buf, $raise_error)
-                  : Storable::AMF3::deparse_amf($buf, $raise_error);
+                  : Storable::AMF0::deparse_amf($buf, $raise_error);
                 substr $buf, 0, $length, '';
                 $body->{data} = $obj;
             }
