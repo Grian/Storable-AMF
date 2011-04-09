@@ -1,8 +1,8 @@
-    - realize readObject, CanRead, 
-    - Add descriptive error messages.
-    - more documentation on thaw ARRAY, XML
+    - add new Classes InputStream, OutputStream
+    - add more documentation on thaw ARRAY, XML
     - Improve testleak for strings
     - add limit memory behavior (Error message when no mem)
     - max array opt
-    - add examples
+    - add full examples
     - add documentation for boolean, basic externalized objects, boolean_json
+    - decomment AMF3 memleak test

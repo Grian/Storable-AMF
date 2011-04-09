@@ -187,6 +187,7 @@ struct io_struct{
     int rc_object;
     int rc_trait;
     int version;
+    int final_version;
     int options;
     struct io_amf_option* ext_option;
     SV * (*parse_one_object)(pTHX_ struct io_struct * io);
@@ -325,6 +326,7 @@ inline void io_in_init(pTHX_ struct io_struct * io, SV *io_self, SV* data, int a
 	amf_version = AMF3_VERSION;
 	++io->pos;
     };
+    io->final_version = amf_version; 
     if (amf_version == AMF3_VERSION) {
         io->arr_string = newAV();
         io->arr_trait = newAV();
@@ -362,10 +364,10 @@ inline void io_in_destroy(pTHX_ struct io_struct * io, AV *a){
         }
     }
     else {
-        if (io->version == AMF0_VERSION){
+        if (io->final_version == AMF0_VERSION){
             io_in_destroy(aTHX_  io, io->refs);
         }
-        else if (io->version == AMF3_VERSION) {
+        else if (io->final_version == AMF3_VERSION) {
             /*            fprintf( stderr, "%p %p %p %p\n", io->refs, io->arr_object, io->arr_trait, io->arr_string); */
             io_in_destroy(aTHX_  io, io->refs);
             io_in_destroy(aTHX_  io, io->arr_object);
@@ -381,7 +383,7 @@ inline void io_out_init(pTHX_ struct io_struct *io, SV* io_self, int amf3){
     SV *sbuffer;
     unsigned int ibuf_size ;
     unsigned int ibuf_step ;
-    sbuffer = newSVpvn("",0);
+    sbuffer = sv_2mortal(newSVpvn("",0));
     io->version = amf3;
     ibuf_size = 10240;
     ibuf_step = 20480;
@@ -390,7 +392,7 @@ inline void io_out_init(pTHX_ struct io_struct *io, SV* io_self, int amf3){
     if (amf3) {
 
         io->hv_string = newHV();
-        io->hv_trait = newHV();
+        io->hv_trait  = newHV();
         io->hv_object = newHV();
 
         io->rc_string = 0;
@@ -2290,7 +2292,7 @@ thaw(SV *data, ...)
         mg_get(data);
         /* sting options mode */
         if (1 == items ){
-            io->options = 0;
+            io->options = DEFAULT_MASK;
         }
         else {
             SV * opt = ST(1);
@@ -2338,7 +2340,7 @@ deparse_amf(SV *data, ...)
         mg_get(data);
         /* sting options mode */
         if (1 >= items ){
-            io->options = 0;
+            io->options = DEFAULT_MASK;
         }
         else {
             SV * opt = ST(1);
@@ -2406,7 +2408,7 @@ void freeze(SV *data, ... )
         };
         if (! Sigsetjmp(io->target_error, 0)){
             amf0_format_one(aTHX_  io, data);
-            retvalue = sv_2mortal(io_buffer(io));
+            retvalue = io_buffer(io);
             XPUSHs(retvalue);
             sv_setsv(ERRSV, &PL_sv_undef);
         }
@@ -2431,7 +2433,7 @@ deparse_amf(data, ...)
         mg_get(data);
         /* Setting options mode */
         if (1 == items){
-            io->options = 0;
+            io->options = DEFAULT_MASK;
         }
         else {
             SV * opt = ST(1);
@@ -2447,8 +2449,8 @@ deparse_amf(data, ...)
                 croak("Storable::AMF3::deparse_amf(data, ...): data is in utf8. Can't process utf8");
             }
             io_self = newRV_noinc((SV*)newAV());
-            io_in_init(aTHX_  io, io_self, data, AMF3_VERSION);
             sv_2mortal(io_self);
+            io_in_init(aTHX_  io, io_self, data, AMF3_VERSION);
             if ( ! Sigsetjmp(io->target_error, 0)){
                 retvalue = (SV*) (amf3_parse_one(aTHX_  io));
                 sv_2mortal(retvalue);
@@ -2501,8 +2503,8 @@ thaw(data, ...)
                 croak("Storable::AMF3::thaw(data, ...): data is in utf8. Can't process utf8");
             }
             io_self = newRV_noinc((SV*)newAV());
-            io_in_init(aTHX_  io, io_self, data, AMF3_VERSION);
             sv_2mortal(io_self);
+            io_in_init(aTHX_  io, io_self, data, AMF3_VERSION);
             if ( ! Sigsetjmp(io->target_error, 0)){
                 retvalue = (SV*) (amf3_parse_one(aTHX_  io));
                 sv_2mortal(retvalue);
@@ -2534,12 +2536,12 @@ void freeze(SV *data, int opts=DEFAULT_MASK)
     PPCODE:
 	PERL_UNUSED_VAR(ix); 
         io_self= newSV(0);
+	sv_2mortal(io_self);
         io_out_init(aTHX_  io, 0, AMF3_VERSION);
 	io->options = opts;
         if (! Sigsetjmp(io->target_error, 0)){
             amf3_format_one(aTHX_  io, data);
-            sv_2mortal(io_self);
-            retvalue = sv_2mortal(io_buffer(io));
+            retvalue = io_buffer(io);
             XPUSHs(retvalue);
             sv_setsv(ERRSV, &PL_sv_undef);
         }
