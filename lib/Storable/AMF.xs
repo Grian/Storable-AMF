@@ -40,11 +40,11 @@
 #define MARKER3_STRING    '\x06'
 #define MARKER3_XML_DOC   '\x07'
 #define MARKER3_DATE      '\x08'
-#define MARKER3_ARRAY	  '\x09'
-#define MARKER3_OBJECT	  '\x0a'
-#define MARKER3_XML	  '\x0b'
-#define MARKER3_BYTEARRAY '\x0c'
-#define MARKER3_AMF_PLUS	  '\x11' 
+#define MARKER3_ARRAY		    '\x09'
+#define MARKER3_OBJECT		    '\x0a'
+#define MARKER3_XML		    '\x0b'
+#define MARKER3_BYTEARRAY	    '\x0c'
+#define MARKER3_AMF_PLUS	    '\x11' 
 
 #define MARKER0_NUMBER		  '\x00'
 #define MARKER0_BOOLEAN		  '\x01'
@@ -84,6 +84,7 @@
 #define ERR_RECURRENT_OBJECT 17
 #define ERR_BAD_REFVAL  18
 #define ERR_INTERNAL    19
+#define ERR_ARRAY_TOO_BIG    20
 
 #define OPT_STRICT        1
 #define OPT_DECODE_UTF8   2
@@ -151,7 +152,9 @@ char *error_messages[] = {
     "ERR_INT_OVERFLOW", 
     "ERR_RECURRENT_OBJECT", 
     "ERR_BAD_REFVAL",  
-    "ERR_INTERNAL"
+    "ERR_INTERNAL",
+    "ERR_ARRAY_TOO_BIG",
+    0
 };
 struct io_amf_option;
 /*#define TRACE0 */
@@ -160,6 +163,7 @@ struct amf3_restore_point{
     int offset_object;
     int offset_trait;
     int offset_string;
+    int arr_max;
 };
 
 struct io_struct{
@@ -171,8 +175,8 @@ struct io_struct{
     int RV_COUNT;
     HV * RV_HASH;
     int buffer_step_inc;
+    int arr_max;
     char status;
-    char * old_pos;
     Sigjmp_buf target_error;
     int error_code;
     AV *arr_string;
@@ -276,7 +280,7 @@ inline void io_test_eof(pTHX_ struct io_struct *io){
 void io_format_error(pTHX_ struct io_struct *io ){
     int error_code = io->error_code;
     char *message;
-    if ( error_code < 1 || error_code > ARRAY_SIZE( error_messages )){
+    if ( error_code < 1 || error_code >= ARRAY_SIZE( error_messages )){
 	error_code = ERR_INTERNAL;
     };
     message = error_messages[ error_code - 1];
@@ -323,13 +327,19 @@ inline void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version){
 	++io->pos;
     };
     io->final_version = amf_version; 
-    io->arr_object = newAV();
-    sv_2mortal((SV*) io->arr_object);
+    /* Support when  array extend is too big */
+    io->arr_max = SvCUR( data );
+
+    sv_2mortal( (SV *) (io->arr_object = newAV()) );
+    av_extend( io->arr_object, 32 ); 
     if (amf_version == AMF3_VERSION) {
         io->arr_string = newAV();
-        io->arr_trait = newAV();
         sv_2mortal((SV*) io->arr_string);
+	/* av_extend( io->arr_string, 16); */
+
+        io->arr_trait = newAV();
         sv_2mortal((SV*) io->arr_trait);
+	/* av_extend( io->arr_trait, 16); */
 	io->parse_one_object = amf3_parse_one;
     }
     else {
@@ -1110,6 +1120,13 @@ STATIC_INLINE SV* amf0_parse_strict_array(pTHX_ struct io_struct *io){
 
     refs = (AV*) io->arr_object;
     array_len = io_read_u32(io);
+    
+    /* report error before av_extent */
+    if ( array_len > io->arr_max )
+	io_register_error( io, ERR_ARRAY_TOO_BIG );
+    else 
+	io->arr_max -= array_len;
+
     this_array = newAV();
     av_extend(this_array, array_len);
     av_push(refs, RETVALUE = newRV_noinc((SV*) this_array));
@@ -1136,8 +1153,15 @@ STATIC_INLINE SV* amf0_parse_ecma_array(pTHX_ struct io_struct *io){
     int av_refs_len;
     int key_len;
     char *key_ptr;
-    array_len = io_read_u32(io);
-    position= io_position(io);
+    array_len   = io_read_u32(io);
+    position    = io_position(io);
+
+
+    /* report_array early */
+    if ( array_len > io->arr_max )
+	io_register_error( io, ERR_ARRAY_TOO_BIG);
+    else 
+	io->arr_max -= array_len;
 
     this_array = newAV();
     av_extend(this_array, array_len);
