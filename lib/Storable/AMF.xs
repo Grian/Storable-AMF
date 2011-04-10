@@ -168,7 +168,6 @@ struct io_struct{
     unsigned char * end;
     void * this_perl;
     SV * sv_buffer;
-    AV * refs;
     int RV_COUNT;
     HV * RV_HASH;
     int buffer_step_inc;
@@ -317,7 +316,6 @@ inline void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version){
     io->ptr = (unsigned char *) SvPVX(data);
     io->end = io->ptr + SvCUR(data);
     io->pos = io->ptr;
-    io->refs    = (AV*) sv_2mortal ( (SV *) newAV() );
     io->status  = 'r';
     io->version = amf_version;
     if ( amf_version == AMF0_VERSION && (io->ptr[0] ==MARKER0_AMF_PLUS) ){
@@ -325,13 +323,13 @@ inline void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version){
 	++io->pos;
     };
     io->final_version = amf_version; 
+    io->arr_object = newAV();
+    sv_2mortal((SV*) io->arr_object);
     if (amf_version == AMF3_VERSION) {
         io->arr_string = newAV();
         io->arr_trait = newAV();
-        io->arr_object = newAV();
         sv_2mortal((SV*) io->arr_string);
         sv_2mortal((SV*) io->arr_trait);
-        sv_2mortal((SV*) io->arr_object);
 	io->parse_one_object = amf3_parse_one;
     }
     else {
@@ -363,11 +361,9 @@ inline void io_in_destroy(pTHX_ struct io_struct * io, AV *a){
     }
     else {
         if (io->final_version == AMF0_VERSION){
-            io_in_destroy(aTHX_  io, io->refs);
+            io_in_destroy(aTHX_  io, io->arr_object);
         }
         else if (io->final_version == AMF3_VERSION) {
-            /*            fprintf( stderr, "%p %p %p %p\n", io->refs, io->arr_object, io->arr_trait, io->arr_string); */
-            io_in_destroy(aTHX_  io, io->refs);
             io_in_destroy(aTHX_  io, io->arr_object);
             io_in_destroy(aTHX_  io, io->arr_trait); /* May be not needed */
             io_in_destroy(aTHX_  io, io->arr_string);
@@ -1031,8 +1027,8 @@ STATIC_INLINE SV * amf0_parse_object(pTHX_ struct io_struct * io){
     int obj_pos;
 
     obj =  newHV();
-    av_push(io->refs, newRV_noinc((SV *) obj));
-    obj_pos = av_len(io->refs);
+    av_push(io->arr_object, newRV_noinc((SV *) obj));
+    obj_pos = av_len(io->arr_object);
     while(1){
         len_next = io_read_u16(io);
         if (len_next == 0) {
@@ -1041,7 +1037,7 @@ STATIC_INLINE SV * amf0_parse_object(pTHX_ struct io_struct * io){
             if ((object_end == MARKER0_OBJECT_END))
             {
                 if (io->options & OPT_STRICT){
-                    SV* RETVALUE = *av_fetch(io->refs, obj_pos, 0);
+                    SV* RETVALUE = *av_fetch(io->arr_object, obj_pos, 0);
                     if (SvREFCNT(RETVALUE) > 1)
                         io_register_error(io, ERR_RECURRENT_OBJECT);
                     ;
@@ -1089,7 +1085,7 @@ STATIC_INLINE SV* amf0_parse_reference(pTHX_ struct io_struct *io){
     int object_offset;
     AV * ar_refs;
     object_offset = io_read_u16(io);
-    ar_refs = (AV *) io->refs;
+    ar_refs = (AV *) io->arr_object;
     if (object_offset > av_len(ar_refs)){
         io_register_error(io, ERR_AMF0_REF);
     }
@@ -1109,10 +1105,10 @@ STATIC_INLINE SV* amf0_parse_strict_array(pTHX_ struct io_struct *io){
     SV* RETVALUE;
     int array_len;
     AV* this_array;
-    AV * refs = io->refs;
+    AV * refs = io->arr_object;
     int i;
 
-    refs = (AV*) io->refs;
+    refs = (AV*) io->arr_object;
     array_len = io_read_u32(io);
     this_array = newAV();
     av_extend(this_array, array_len);
@@ -1133,7 +1129,7 @@ STATIC_INLINE SV* amf0_parse_ecma_array(pTHX_ struct io_struct *io){
 
     U32 array_len;
     AV * this_array;
-    AV * refs = io->refs;
+    AV * refs = io->arr_object;
     int  position; /*remember offset for array convertion to hash */
     int last_len;
     char last_marker;
@@ -1249,7 +1245,7 @@ STATIC_INLINE SV* amf0_parse_date(pTHX_ struct io_struct *io){
 	RETVALUE = newSVnv(time);
     else 
 	RETVALUE = newSVnv(time/1000.0);
-    av_push(io->refs, RETVALUE);
+    av_push(io->arr_object, RETVALUE);
     SvREFCNT_inc_simple_void_NN(RETVALUE);
     return RETVALUE;
 }
@@ -1277,7 +1273,7 @@ STATIC_INLINE SV* amf0_parse_xml_document(pTHX_ struct io_struct *io){
     SV* RETVALUE;
     RETVALUE = amf0_parse_long_string(aTHX_  io);
     SvREFCNT_inc_simple_void_NN(RETVALUE);
-    av_push(io->refs, RETVALUE);
+    av_push(io->arr_object, RETVALUE);
     return RETVALUE;
 }
 inline SV *parse_scalar_ref(pTHX_ struct io_struct *io){
@@ -1289,8 +1285,8 @@ inline SV *parse_scalar_ref(pTHX_ struct io_struct *io){
 
         io->pos+=6;
         obj =  newSV(0);
-        av_push(io->refs,  obj);
-        obj_pos = av_len(io->refs);
+        av_push(io->arr_object,  obj);
+        obj_pos = av_len(io->arr_object);
         value = 0;
 
         while(1){
@@ -1300,7 +1296,7 @@ inline SV *parse_scalar_ref(pTHX_ struct io_struct *io){
                 object_end= io_read_marker(io);
                 if ((object_end == MARKER0_OBJECT_END))
                 {
-                    SV* RETVALUE = *av_fetch(io->refs, obj_pos, 0);
+                    SV* RETVALUE = *av_fetch(io->arr_object, obj_pos, 0);
                     if (!value)
                         io_register_error(io, ERR_BAD_REFVAL);
                         sv_setsv(obj, newRV_noinc(value));
