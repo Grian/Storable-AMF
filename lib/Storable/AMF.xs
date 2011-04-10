@@ -166,7 +166,6 @@ struct io_struct{
     unsigned char * ptr;
     unsigned char * pos;
     unsigned char * end;
-    char *message;
     void * this_perl;
     SV * sv_buffer;
     AV * refs;
@@ -313,13 +312,12 @@ inline void io_register_error_and_free(pTHX_ struct io_struct *io, int errtype, 
         sv_2mortal((SV*) pointer);
     Siglongjmp(io->target_error, errtype);
 }
-inline void io_in_init(pTHX_ struct io_struct * io, SV *io_self, SV* data, int amf_version){
+inline void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version){
     /*    PerlInterpreter *my_perl = io->interpreter; */
     io->ptr = (unsigned char *) SvPVX(data);
     io->end = io->ptr + SvCUR(data);
     io->pos = io->ptr;
-    io->message = "";
-    io->refs    = (AV*) SvRV(io_self);
+    io->refs    = (AV*) sv_2mortal ( (SV *) newAV() );
     io->status  = 'r';
     io->version = amf_version;
     if ( amf_version == AMF0_VERSION && (io->ptr[0] ==MARKER0_AMF_PLUS) ){
@@ -379,7 +377,7 @@ inline void io_in_destroy(pTHX_ struct io_struct * io, AV *a){
         }
     }
 }
-inline void io_out_init(pTHX_ struct io_struct *io, SV* io_self, int amf3){
+inline void io_out_init(pTHX_ struct io_struct *io, int amf3){
     SV *sbuffer;
     unsigned int ibuf_size ;
     unsigned int ibuf_step ;
@@ -409,7 +407,6 @@ inline void io_out_init(pTHX_ struct io_struct *io, SV* io_self, int amf3){
     io->ptr = (unsigned char *) SvPV_nolen(io->sv_buffer);
     io->pos = io->ptr;
     io->end = (unsigned char *) SvEND(io->sv_buffer);
-    io->message = "";
     io->status  = 'w';
     io->RV_COUNT = 0;
     io->RV_HASH   = newHV();
@@ -697,7 +694,6 @@ inline void amf0_format_one(pTHX_ struct io_struct *io, SV * one){
                 amf0_format_scalar_ref(aTHX_  io, (SV*) rv);
             }
             else {
-                io->message = "bad type of object in stream";
                 io_register_error(io, ERR_BAD_OBJECT);
             }
         }
@@ -1073,7 +1069,6 @@ STATIC_INLINE SV * amf0_parse_object(pTHX_ struct io_struct * io){
 
 STATIC_INLINE SV* amf0_parse_movieclip(pTHX_ struct io_struct *io){
     SV* RETVALUE;
-    io->message = "Movie clip unsupported yet";
     RETVALUE = newSV(0);
     return RETVALUE;
 }
@@ -2057,7 +2052,6 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
 		amf3_format_date(aTHX_ io, rv );
 	    }
             else {
-                io->message = "bad type of object in stream";
                 io_register_error(io, ERR_BAD_OBJECT);
             }
         }
@@ -2284,7 +2278,6 @@ thaw(SV *data, ...)
     PROTOTYPE: $;$
     INIT:
         SV* retvalue;
-        SV* io_self;
         struct io_struct io[1];
     PPCODE:
 	PERL_UNUSED_VAR(ix);
@@ -2307,9 +2300,7 @@ thaw(SV *data, ...)
             if (SvUTF8(data)) {
                 croak("Storable::AMF0::thaw(data, ...): data is in utf8. Can't process utf8");
             };
-            io_self = newRV_noinc((SV*)newAV());
-            io_in_init(aTHX_  io, io_self, data, AMF0_VERSION);
-            sv_2mortal(io_self);
+            io_in_init(aTHX_  io, data, AMF0_VERSION);
             if ( Sigsetjmp(io->target_error, 0) ){
 		io_format_error( aTHX_ io );
             }
@@ -2332,7 +2323,6 @@ deparse_amf(SV *data, ...)
 	Storable::AMF::deparse_amf=1
     INIT:
         SV* retvalue;
-        SV* io_self;
 	struct io_struct io[1];
     PPCODE:
 	PERL_UNUSED_VAR(ix);
@@ -2355,9 +2345,7 @@ deparse_amf(SV *data, ...)
             if (SvUTF8(data)) {
                 croak("Storable::AMF0::deparse_amf(data, ...): data is in utf8. Can't process utf8");
             };
-            io_self = newRV_noinc((SV*)newAV());
-            io_in_init(aTHX_  io, io_self, data, AMF0_VERSION);
-            sv_2mortal(io_self);
+            io_in_init(aTHX_  io, data, AMF0_VERSION);
             if ( ! Sigsetjmp(io->target_error, 0)){
                 
                 retvalue = (SV*) (io->parse_one_object(aTHX_  io));
@@ -2388,13 +2376,10 @@ void freeze(SV *data, ... )
     PROTOTYPE: $;$
     INIT:
         SV * retvalue;
-        SV * io_self;
         struct io_struct io[1];
     PPCODE:
 	PERL_UNUSED_VAR(ix);
-        io_self= newSV(0);
-        sv_2mortal(io_self);
-        io_out_init(aTHX_  io, 0, AMF0_VERSION);
+        io_out_init(aTHX_  io, AMF0_VERSION);
         if (1 == items){
             io->options = DEFAULT_MASK;
         }
@@ -2425,12 +2410,11 @@ deparse_amf(data, ...)
     PROTOTYPE: $;$
     INIT:
         SV* retvalue;
-        SV* io_self;
         struct io_struct io[1];
     PPCODE:
 
         if (SvMAGICAL(data))
-        mg_get(data);
+	    mg_get(data);
         /* Setting options mode */
         if (1 == items){
             io->options = DEFAULT_MASK;
@@ -2448,9 +2432,7 @@ deparse_amf(data, ...)
             if (SvUTF8(data)) {
                 croak("Storable::AMF3::deparse_amf(data, ...): data is in utf8. Can't process utf8");
             }
-            io_self = newRV_noinc((SV*)newAV());
-            sv_2mortal(io_self);
-            io_in_init(aTHX_  io, io_self, data, AMF3_VERSION);
+            io_in_init(aTHX_  io, data, AMF3_VERSION);
             if ( ! Sigsetjmp(io->target_error, 0)){
                 retvalue = (SV*) (amf3_parse_one(aTHX_  io));
                 sv_2mortal(retvalue);
@@ -2475,7 +2457,6 @@ thaw(data, ...)
     PROTOTYPE: $;$
     INIT:
         SV* retvalue;
-        SV* io_self;
         struct io_struct io[1];
     ALIAS:
 	Storable::AMF::thaw3=1
@@ -2502,9 +2483,7 @@ thaw(data, ...)
             if (SvUTF8(data)) {
                 croak("Storable::AMF3::thaw(data, ...): data is in utf8. Can't process utf8");
             }
-            io_self = newRV_noinc((SV*)newAV());
-            sv_2mortal(io_self);
-            io_in_init(aTHX_  io, io_self, data, AMF3_VERSION);
+            io_in_init(aTHX_  io, data, AMF3_VERSION);
             if ( ! Sigsetjmp(io->target_error, 0)){
                 retvalue = (SV*) (amf3_parse_one(aTHX_  io));
                 sv_2mortal(retvalue);
@@ -2529,15 +2508,12 @@ void freeze(SV *data, int opts=DEFAULT_MASK)
     PROTOTYPE: $;$
     PREINIT:
         SV * retvalue;
-        SV * io_self;
         struct io_struct io[1];
     ALIAS:
 	Storable::AMF::freeze3=1
     PPCODE:
 	PERL_UNUSED_VAR(ix); 
-        io_self= newSV(0);
-	sv_2mortal(io_self);
-        io_out_init(aTHX_  io, 0, AMF3_VERSION);
+        io_out_init(aTHX_  io, AMF3_VERSION);
 	io->options = opts;
         if (! Sigsetjmp(io->target_error, 0)){
             amf3_format_one(aTHX_  io, data);
