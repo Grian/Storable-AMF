@@ -359,6 +359,7 @@ Revision history for Perl extension Storable::AMF.
 	- fix possible memleak with (amf_plus_marker)
 	- fix possible memleak in thaw/deparse_amf AMF3
 	- more correct creation temp structures 
+	- limit  for array size when array extend
 	
 
 
