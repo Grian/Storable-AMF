@@ -48,7 +48,7 @@ sub main {
     while ( length $buf ) {
 
         #($obj, $psize) = Storable::AMF3::deparse_amf($buf);
-        ( $obj, $psize ) = deparse_packet($buf);
+        ( $obj, $psize ) = eval { deparse_packet($buf) };
         if ( !ref($obj) || $@ ) {
             printf( "Skipped: 0x%02X (1 byte)\n", ord($buf) );
 			if ( $@ ){
@@ -69,7 +69,6 @@ sub deparse_packet {
 	my $start_len = length $buf;
 	
 	my $raise_error = Storable::AMF0::parse_option('raise_error');
-    return eval {
         my $class = {};
 
         $class->{'headers'} = [];
@@ -134,7 +133,6 @@ sub deparse_packet {
         }
 
         return ( $class, $start_len - length $buf );
-    }
 }
 
 
