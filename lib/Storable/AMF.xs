@@ -40,11 +40,11 @@
 #define MARKER3_STRING    '\x06'
 #define MARKER3_XML_DOC   '\x07'
 #define MARKER3_DATE      '\x08'
-#define MARKER3_ARRAY		    '\x09'
-#define MARKER3_OBJECT		    '\x0a'
-#define MARKER3_XML		    '\x0b'
-#define MARKER3_BYTEARRAY	    '\x0c'
-#define MARKER3_AMF_PLUS	    '\x11' 
+#define MARKER3_ARRAY	  '\x09'
+#define MARKER3_OBJECT	  '\x0a'
+#define MARKER3_XML	  '\x0b'
+#define MARKER3_BYTEARRAY '\x0c'
+#define MARKER3_AMF_PLUS	  '\x11' 
 
 #define MARKER0_NUMBER		  '\x00'
 #define MARKER0_BOOLEAN		  '\x01'
@@ -335,11 +335,8 @@ inline void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version){
     if (amf_version == AMF3_VERSION) {
         io->arr_string = newAV();
         sv_2mortal((SV*) io->arr_string);
-	/* av_extend( io->arr_string, 16); */
-
         io->arr_trait = newAV();
         sv_2mortal((SV*) io->arr_trait);
-	/* av_extend( io->arr_trait, 16); */
 	io->parse_one_object = amf3_parse_one;
     }
     else {
@@ -396,7 +393,7 @@ inline void io_out_init(pTHX_ struct io_struct *io, int amf3){
     if (amf3) {
 
         io->hv_string = newHV();
-        io->hv_trait  = newHV();
+        io->hv_trait = newHV();
         io->hv_object = newHV();
 
         io->rc_string = 0;
@@ -942,7 +939,10 @@ inline int io_read_u32(struct io_struct * io){
 inline void amf3_write_integer(pTHX_ struct io_struct *io, IV ivalue){
     UV value;
     if (ivalue<0){
-        value = 0x3fffffff & (UV) ivalue;	
+	if ( ivalue < -( 1 << 28) ){
+	    io_register_error( io, ERR_INT_OVERFLOW );
+	};
+        value = 0x1fffffff & (UV) ivalue;	
     }
     else {
         value = ivalue;
@@ -966,7 +966,7 @@ inline void amf3_write_integer(pTHX_ struct io_struct *io, IV ivalue){
         io->pos[2] = (U8) (value & 0x7f);
         io->pos+=3;
     }
-    else if ((value <= 0x3FFFFFFF)){
+    else if ((value <= 0x1FFFFFFF)){
         io_reserve(aTHX_  io, 4);
 
         io->pos[0] = (U8) (value>>22 & 0xff) |128;
@@ -991,10 +991,11 @@ inline int amf3_read_integer(struct io_struct *io){
 
             io_require(io, 3);
             if ((U8) io->pos[2] >0x7f) {
-                value =  ((io->pos[0] & 0x7f) <<22)| ((io->pos[1] & 0x7f) <<15) | ((io->pos[2] & 0x7f) <<8) | io->pos[3];
                 io_require(io, 4);
 
-                if ((U8) io->pos[3] >0x7f) {
+                value =  ((io->pos[0] & 0x7f) <<22)| ((io->pos[1] & 0x7f) <<15) | ((io->pos[2] & 0x7f) <<8) | io->pos[3];
+
+                if ((U8) io->pos[0] >= 0xc0) {
                     value = value | ~(0x0fffffff);
                 }
                 else {
@@ -1153,8 +1154,8 @@ STATIC_INLINE SV* amf0_parse_ecma_array(pTHX_ struct io_struct *io){
     int av_refs_len;
     int key_len;
     char *key_ptr;
-    array_len   = io_read_u32(io);
-    position    = io_position(io);
+    array_len = io_read_u32(io);
+    position= io_position(io);
 
 
     /* report_array early */
@@ -1843,7 +1844,7 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one);
 inline void amf3_format_integer(pTHX_ struct io_struct *io, SV *one){
 
     IV i = SvIV(one);
-    if (i <= 0x3fffffff && i>= -(0x3fffffff)){
+    if (i <= 0x1fffffff && i>= -(0x1fffffff)){
         io_write_marker(aTHX_  io, MARKER3_INTEGER);
         amf3_write_integer(aTHX_  io, SvIV(one));
     }
@@ -2347,7 +2348,7 @@ deparse_amf(SV *data, ...)
     PPCODE:
 	PERL_UNUSED_VAR(ix);
         if (SvMAGICAL(data))
-        mg_get(data);
+	    mg_get(data);
         /* sting options mode */
         if (1 >= items ){
             io->options = DEFAULT_MASK;
@@ -2434,7 +2435,7 @@ deparse_amf(data, ...)
     PPCODE:
 
         if (SvMAGICAL(data))
-	    mg_get(data);
+        mg_get(data);
         /* Setting options mode */
         if (1 == items){
             io->options = DEFAULT_MASK;
@@ -2518,6 +2519,58 @@ thaw(data, ...)
         else {
             croak("USAGE Storable::AMF3::thaw( $amf3 ). First arg must be string");
         }
+
+void
+_test_thaw_integer(SV*data)
+    INIT:
+        SV* retvalue;
+        struct io_struct io[1];
+    PPCODE:
+
+        if (SvMAGICAL(data))
+        mg_get(data);
+	io->options = 0;
+
+        if (SvPOKp(data)){
+            if (SvUTF8(data)) {
+                croak("Storable::AMF3::_test_thaw_integer data is in utf8. Can't process utf8");
+            }
+            io_in_init(aTHX_  io, data, AMF3_VERSION);
+            if ( ! Sigsetjmp(io->target_error, 0)){
+                retvalue = (SV*) (amf3_parse_integer(aTHX_  io));
+                sv_2mortal(retvalue);
+		io_test_eof( aTHX_ io );
+
+                sv_setsv(ERRSV, &PL_sv_undef);
+		XPUSHs(retvalue);
+            }
+            else {
+		io_format_error(aTHX_ io );
+            }
+        }
+        else {
+            croak("USAGE Storable::AMF3::_test_thaw_integer( $amf3 ). First arg must be string");
+        }
+
+
+void
+_test_freeze_integer(SV*data)
+    PREINIT:
+        SV * retvalue;
+        struct io_struct io[1];
+    PPCODE:
+        io_out_init(aTHX_  io, AMF3_VERSION);
+	io->options = DEFAULT_MASK;
+        if (! Sigsetjmp(io->target_error, 0)){
+            amf3_write_integer(aTHX_  io, SvIV(data));
+            retvalue = io_buffer(io);
+            XPUSHs(retvalue);
+            sv_setsv(ERRSV, &PL_sv_undef);
+        }
+        else {
+	    io_format_error( aTHX_ io );
+        }
+
 
 void 
 endian()
