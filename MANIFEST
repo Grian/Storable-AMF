@@ -5,12 +5,12 @@ TODO
 README
 .gitignore
 t/GrianUtils.pm
-lib/Storable/ppport.h
+ppport.h
 lib/Storable/AMF.pm
 lib/Storable/AMF0.pm
 lib/Storable/AMF3.pm
 lib/Storable/AMF/Mapper.pm
-lib/Storable/AMF.xs
+AMF.xs
 t/AMF0/01-array-0-foo-bar-baz.pack
 t/00-compile.t
 t/01-parse_amf0.t
@@ -21,6 +21,7 @@ t/05-dclone.t
 t/06-aux-utility.t
 t/06-last-undef.t
 t/07-pod.t
+t/08-amf3-integer.t
 t/10-dual-var.t
 t/20-amf-double.t
 t/21-amf-strings.t

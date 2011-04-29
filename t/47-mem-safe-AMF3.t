@@ -29,7 +29,7 @@ sub get_item{
 	($name, $obj, $image_amf3, $image_amf0) = @{ $_[0] }{qw(name obj amf3 amf0 eval)};
 }
 
-print "1..0\n" and exit;
+#print "1..0\n" and exit;
 my $total = @item + @objs*4+ @recurrent;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
