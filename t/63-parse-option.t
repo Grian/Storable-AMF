@@ -67,5 +67,5 @@ sub fail_parse_ok{
 	local $Test::Builder::Level = $Test::Builder::Level + 1;
 	local $@;
 	my $s = eval{ parse_option($_[0]) };
-	ok( !defined && $@, "fail parse '$_[0]'");
+	ok( !defined $s && $@, "fail parse '$_[0]'");
 }
