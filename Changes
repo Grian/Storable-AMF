@@ -364,6 +364,9 @@ Revision history for Perl extension Storable::AMF.
 	- fix amf3_write_integer for boundary conditions
 	- added more tests for amf3 integer convertion t/08-amf3_integer.t
 	- uncomment memleak for amf3
+
+0.96	20011-01-03
+	- better freeze integer ( added test for boundary conditions )
 	
 
 

@@ -19,6 +19,8 @@ use Data::Dumper;
 use Test::More 'no_plan';                      # last test to print
 use ExtUtils::testlib;
 use Storable::AMF qw(freeze3 thaw3);
+sub MARKER_INT(){ 4; }
+sub MARKER_DOUBLE(){ 5; }
 
 #print int( 1<<30), "\n",0x3fffffff, "\n";
 
@@ -93,11 +95,36 @@ ok_integer(  int(-32768-1), "ff fe ff ff" );
 ok_integer(  int(-32768-128), "ff fe ff 80" );
 ok_integer(  int(-32768-256), "ff fe ff 00" );
 
+# data represented 
+#
+
+is_type( int(1), MARKER_INT, "1 is int");
+is_type( 1.0, MARKER_DOUBLE, "1 is double");
+
+is_type( int( 2**28-1 ), MARKER_INT, "2**28 -1 is int" );
+is_type( int( 2**28 ), MARKER_DOUBLE, "2**28 is double" );
+
+is_type( int( -2**28 ), MARKER_INT, "-2**28  is int" );
+is_type( int( -2**28 -1), MARKER_DOUBLE, "-2**28 -1 is double" );
 exit;
 
 sub present{
 	my ($int) = @_;
 	print "$int = ", thaw3( freeze3( $_[0] )), "\n";
+}
+sub is_double{
+    local $Test::Builder::Level = $Test::Builder::Level + 1;
+}
+sub is_type{
+    local $Test::Builder::Level = $Test::Builder::Level + 1;
+	my $s = freeze3( $_[0] );
+	if ( defined $s && ord( $s ) == $_[1] ){
+		ok(1, $_[2] );
+	}
+	else {
+		print STDERR Dumper( defined $s, $@ );
+		ok(0, $_[2]);
+	}
 }
 
 sub integer_range_error{

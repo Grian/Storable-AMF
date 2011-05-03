@@ -966,7 +966,7 @@ inline void amf3_write_integer(pTHX_ struct io_struct *io, IV ivalue){
         io->pos[2] = (U8) (value & 0x7f);
         io->pos+=3;
     }
-    else if ((value <= 0x1FFFFFFF)){
+    else if ((value <= 0x1fffffff)){
         io_reserve(aTHX_  io, 4);
 
         io->pos[0] = (U8) (value>>22 & 0xff) |128;
@@ -1844,7 +1844,7 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one);
 inline void amf3_format_integer(pTHX_ struct io_struct *io, SV *one){
 
     IV i = SvIV(one);
-    if (i <= 0x1fffffff && i>= -(0x1fffffff)){
+    if (i <= 0xfffffff && i>= -(0x10000000)){
         io_write_marker(aTHX_  io, MARKER3_INTEGER);
         amf3_write_integer(aTHX_  io, SvIV(one));
     }
