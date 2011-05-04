@@ -1,0 +1,9 @@
+loader = new URLLoader();
+loader.addEventListener(Event.COMPLETE, onLoadData);
+loader.dataFormat=URLLoaderDataFormat.BINARY;
+loader.load(new URLRequest(url));
+
+private function onLoadData( e : Event ) : void {
+    var l : URLLoader = URLLoader( e.target );
+    var data = l.data;
+}
