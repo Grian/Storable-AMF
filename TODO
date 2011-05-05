@@ -2,4 +2,4 @@
     - add more documentation on thaw ARRAY, XML
     - Improve testleak for strings
     - add documentation for boolean, basic externalized objects, boolean_json
-    - decomment AMF3 memleak test
+    - make usage of tempval in freeze 
