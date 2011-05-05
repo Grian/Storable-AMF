@@ -151,6 +151,7 @@ t/AMF3/bug.dump
 META.yml
 examples/abench.pl
 examples/hulala-amf2human.pl
+examples/bench_targ.pl
 examples/packet_dumper.pl
 examples/packets/amf_packet1
 examples/packets/amf_packet2
