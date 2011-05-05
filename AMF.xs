@@ -393,7 +393,7 @@ inline void io_out_init(pTHX_ struct io_struct *io, int amf3){
     if (amf3) {
 
         io->hv_string = newHV();
-        io->hv_trait = newHV();
+        io->hv_trait  = newHV();
         io->hv_object = newHV();
 
         io->rc_string = 0;
@@ -403,8 +403,6 @@ inline void io_out_init(pTHX_ struct io_struct *io, int amf3){
         sv_2mortal((SV *)io->hv_string);
         sv_2mortal((SV *)io->hv_object);
         sv_2mortal((SV *)io->hv_trait);
-
-
     }
     io->buffer_step_inc = ibuf_step;
     io->ptr = (unsigned char *) SvPV_nolen(io->sv_buffer);
