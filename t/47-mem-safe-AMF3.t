@@ -9,13 +9,6 @@ no warnings 'once';
 use Data::Dumper;
 our $msg;
 sub tt(&);
-sub tt(&){
-    my $sub = shift;
-    my $s = ref_mem_safe( $sub );
-    $msg = $s;
-    return $s if $s;
-    return undef;
-}
 
 my @item ;
 push @item,  GrianUtils->my_items($_) for qw(t/AMF0 t/AMF3);
@@ -30,11 +23,13 @@ sub get_item{
 }
 
 #print "1..0\n" and exit;
-my $total = @item + @objs*4+ @recurrent;
+my $total = 3 + @item + @objs*4+ @recurrent ;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
 
-
+ok( ! tt{ my $a; my $b = \$a; $a = [\$b,"aqwsrfffffffffffffffffffffffffffffff"] } , "memleak working 1 - $msg");
+ok( tt{ my $a; my $b ; $a = [\$b,"aqwsrfffffffffffffffffffffffffffffff"] } , "memleak working 2 - $msg");
+ok( ! tt{ my $a; my $b = \$a; $a = [\$b] } , "memleak working 3 - $msg");
 
 TEST_LOOP: for my $item (@recurrent){
 	   get_item( $item );
@@ -63,3 +58,9 @@ TEST_LOOP: for my $item (@objs){
 }
 
 
+
+sub tt(&){
+    my $sub = shift;
+    (my $result , $msg ) = ref_mem_safe( $sub, 2000, 130 );
+    return $result;
+}

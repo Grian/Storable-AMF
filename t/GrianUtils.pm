@@ -201,27 +201,30 @@ sub _all_refs_addr{
     }
     return keys %$c;
 }
-sub ref_mem_safe{
-    my $sub = shift;
-    my $count_to_execute = shift ||200;
-    my $count_to_be_ok   = shift ||50;
-    
+sub ref_mem_safe {
+    my $sub              = shift;
+    my $count_to_execute = shift || 400;
+    my $count_to_be_ok   = shift || 50;
+
     my $nu = -1;
     my @addresses;
     my %addr;
-    my $old_max =0;
-    for my $round (1..$count_to_execute){
+    my $old_max = 0;
+    for ( my $round = 1 ; $round <= $count_to_execute ; ++$round ) {
         my @seq = &$sub();
-        #my $a   = {};
-        push @seq,(\my $b), [], {}, &$sub(),[],{},\my $a;
-        my $new_max = max ( _all_refs_addr( {}, @seq ,$a, ));
-            if ($old_max<$new_max){
-                $old_max = $new_max;
-                $nu = -1;
-            };
-        ++$nu;
-        return $round if ($nu > $count_to_be_ok) ;
+        push @seq, ( \my $b ), [], {}, [], {}, \my $a;
+        my $new_max = max( _all_refs_addr( {}, @seq, ) );
+        if ( $old_max < $new_max ) {
+            $old_max = $new_max;
+            $nu      = -1;
+        }
+        else {
+            ++$nu;
+        }
+        return $round, $round if ( $nu > $count_to_be_ok );
+        @seq = ();
     }
+    return ( 0, "$nu/$count_to_be_ok, $count_to_execute" ) if wantarray;
     return 0;
 }
 sub my_create_file{
