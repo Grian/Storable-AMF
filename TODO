@@ -2,4 +2,3 @@
     - add more documentation on thaw ARRAY, XML
     - Improve testleak for strings
     - add documentation for boolean, basic externalized objects, boolean_json
-    - make usage of tempval in freeze 

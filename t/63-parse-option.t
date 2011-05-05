@@ -1,19 +1,21 @@
 use strict;
 use ExtUtils::testlib;
-use Storable::AMF0 qw(parse_option);
+use Storable::AMF0 qw(parse_serializator_option);
 use Data::Dumper;
 
+sub parse_option;
 my $total = 4+ 
-	+ 6*2 # One option 
-	+ 5+4 + 4
-	+ 6 ;# - sign;
+    + 6*2 # One option 
+    + 5+4 + 4
+    + 6 # - sign;
+    + 3 # targ
+    ;
 #*CORE::GLOBAL::caller = sub { CORE::caller($_[0] + $Carp::CarpLevel + 1) }; 
 use warnings;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
 
-
-is( parse_option(''), 0, "parse empty==0");
+is( parse_option(''),  0, "parse empty==0");
 is( parse_option(' '), 0, "parse empty==0");
 is( parse_option(','), 0, "parse empty==0");
 is( parse_option('&'), 0, "parse empty==0");
@@ -62,10 +64,16 @@ is( parse_option("$_ -$_"), 0, "parse $_ -$_" ) for qw(raise_error);
 is( parse_option("$_ -$_"), 0, "parse $_ -$_" ) for qw(millisecond_date);
 is( parse_option("$_ -$_"), 0, "parse $_ -$_" ) for qw(prefer_number);
 
+is( parse_serializator_option( "targ"), 256, "parse targ");
+is( parse_serializator_option( ""), 256, "parse  ''");
+is( parse_serializator_option( "-targ"), 0, "parse  -targ");
 sub fail_parse_ok{
 	use Carp;
 	local $Test::Builder::Level = $Test::Builder::Level + 1;
 	local $@;
 	my $s = eval{ parse_option($_[0]) };
 	ok( !defined $s && $@, "fail parse '$_[0]'");
+}
+sub parse_option{
+    return (~256 & parse_serializator_option( $_[0] ));
 }

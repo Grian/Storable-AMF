@@ -65,26 +65,27 @@
 #define MARKER0_TYPED_OBJECT	  '\x10'
 #define MARKER0_AMF_PLUS	  '\x11' 
 
-#define ERR_EOF 1
-#define ERR_AMF0_REF 2
-#define ERR_MARKER 3
-#define ERR_BAD_OBJECT 4
-#define ERR_OVERFLOW 5
-#define ERR_UNIMPLEMENTED 6
-#define ERR_BAD_STRING_REF 7
-#define ERR_BAD_DATE_REF 8
-#define ERR_BAD_OBJECT_REF 9
-#define ERR_BAD_ARRAY_REF 10
+#define ERR_EOF                 1
+#define ERR_AMF0_REF            2
+#define ERR_MARKER              3
+#define ERR_BAD_OBJECT          4
+#define ERR_OVERFLOW            5
+#define ERR_UNIMPLEMENTED       6
+#define ERR_BAD_STRING_REF      7
+#define ERR_BAD_DATE_REF        8
+#define ERR_BAD_OBJECT_REF      9
+#define ERR_BAD_ARRAY_REF       10
 #define ERR_BAD_STRING_REF_UNUSED 11
-#define ERR_BAD_TRAIT_REF 12
-#define ERR_BAD_XML_REF 13
-#define ERR_BAD_BYTEARRAY_REF 14
-#define ERR_EXTRA_BYTE 15
-#define ERR_INT_OVERFLOW 16
-#define ERR_RECURRENT_OBJECT 17
-#define ERR_BAD_REFVAL  18
-#define ERR_INTERNAL    19
-#define ERR_ARRAY_TOO_BIG    20
+#define ERR_BAD_TRAIT_REF       12
+#define ERR_BAD_XML_REF         13
+#define ERR_BAD_BYTEARRAY_REF   14
+#define ERR_EXTRA_BYTE          15
+#define ERR_INT_OVERFLOW        16
+#define ERR_RECURRENT_OBJECT    17
+#define ERR_BAD_REFVAL          18
+#define ERR_INTERNAL            19
+#define ERR_ARRAY_TOO_BIG       20
+#define ERR_BAD_OPTION          21
 
 #define OPT_STRICT        1
 #define OPT_DECODE_UTF8   2
@@ -94,6 +95,7 @@
 #define OPT_PREFER_NUMBER 32
 #define OPT_JSON_BOOLEAN  64
 #define OPT_MAPPER        128
+#define OPT_TARG          256
 
 #define EXPERIMENT1
 
@@ -131,7 +133,7 @@
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 
 #define SIGN_BOOL_APPLY( obj, sign, mask ) ( sign > 0 ? obj|=mask : sign <0 ? obj&=~mask : 0 ) 
-#define DEFAULT_MASK OPT_PREFER_NUMBER
+#define DEFAULT_MASK (OPT_PREFER_NUMBER|OPT_TARG)
 
 char *error_messages[] = {
     "ERR_EOF", 
@@ -154,6 +156,7 @@ char *error_messages[] = {
     "ERR_BAD_REFVAL",  
     "ERR_INTERNAL",
     "ERR_ARRAY_TOO_BIG",
+    "ERR_BAD_OPTION",
     0
 };
 struct io_amf_option;
@@ -380,17 +383,41 @@ inline void io_in_destroy(pTHX_ struct io_struct * io, AV *a){
         }
     }
 }
-inline void io_out_init(pTHX_ struct io_struct *io, int amf3){
+inline void io_out_init(pTHX_ struct io_struct *io, SV*option, int amf_version){
     SV *sbuffer;
     unsigned int ibuf_size ;
     unsigned int ibuf_step ;
-    sbuffer = sv_2mortal(newSVpvn("",0));
-    io->version = amf3;
+    if ( option ){
+        if ( !SvIOK(option)){
+            io_register_error( io, ERR_BAD_OPTION );
+        }
+        else {
+            io->options = SvIV( option );
+        }
+    }
+    else {
+        io->options = DEFAULT_MASK;
+    };
+    io->version = amf_version;
     ibuf_size = 10240;
     ibuf_step = 20480;
-    SvGROW(sbuffer, ibuf_size);
-    io->sv_buffer = sbuffer;
-    if (amf3) {
+
+    if ( io->options & OPT_TARG ){
+        dXSTARG;
+
+        io->sv_buffer = sbuffer = TARG;
+        (void)SvUPGRADE(sbuffer, SVt_PV);
+        SvPOK_on(sbuffer);
+        SvGROW( sbuffer, 512 );
+    }
+    else {
+        sbuffer = sv_2mortal(newSVpvn("",0));
+        SvGROW(sbuffer, ibuf_size);
+        io->sv_buffer = sbuffer;
+    }
+
+    
+    if (amf_version) {
 
         io->hv_string = newHV();
         io->hv_trait  = newHV();
@@ -2398,18 +2425,7 @@ void freeze(SV *data, ... )
         struct io_struct io[1];
     PPCODE:
 	PERL_UNUSED_VAR(ix);
-        io_out_init(aTHX_  io, AMF0_VERSION);
-        if (1 == items){
-            io->options = DEFAULT_MASK;
-        }
-        else {
-            SV * opt = ST(1);
-            if (! SvIOK(opt)){
-                warn( "invalid options." );
-                return ;
-            };
-            io->options = SvIV(opt);
-        };
+        io_out_init(aTHX_  io, ( 1==items ? 0 : ST(1)), AMF0_VERSION);
         if (! Sigsetjmp(io->target_error, 0)){
             amf0_format_one(aTHX_  io, data);
             retvalue = io_buffer(io);
@@ -2467,7 +2483,7 @@ deparse_amf(data, ...)
             }
         }
         else {
-            croak("USAGE Storable::AMF3::deparse_amf( $amf3 ). First arg must be string");
+            croak("USAGE Storable::AMF3::deparse_amf( $amf_version ). First arg must be string");
         }
 
 void
@@ -2557,9 +2573,8 @@ _test_freeze_integer(SV*data)
         SV * retvalue;
         struct io_struct io[1];
     PPCODE:
-        io_out_init(aTHX_  io, AMF3_VERSION);
-	io->options = DEFAULT_MASK;
         if (! Sigsetjmp(io->target_error, 0)){
+            io_out_init(aTHX_  io, 0, AMF3_VERSION);
             amf3_write_integer(aTHX_  io, SvIV(data));
             retvalue = io_buffer(io);
             XPUSHs(retvalue);
@@ -2575,7 +2590,7 @@ endian()
     PPCODE:
     PerlIO_printf(PerlIO_stderr(), "%s %x\n", GAX, BYTEORDER);
 
-void freeze(SV *data, int opts=DEFAULT_MASK)
+void freeze(SV *data, ... )
     PROTOTYPE: $;$
     PREINIT:
         SV * retvalue;
@@ -2584,9 +2599,8 @@ void freeze(SV *data, int opts=DEFAULT_MASK)
 	Storable::AMF::freeze3=1
     PPCODE:
 	PERL_UNUSED_VAR(ix); 
-        io_out_init(aTHX_  io, AMF3_VERSION);
-	io->options = opts;
         if (! Sigsetjmp(io->target_error, 0)){
+            io_out_init(aTHX_  io, ( 1==items ? 0 : ST(1) ),AMF3_VERSION);
             amf3_format_one(aTHX_  io, data);
             retvalue = io_buffer(io);
             XPUSHs(retvalue);
@@ -2645,6 +2659,7 @@ parse_option(char * s, int options=0)
     int s_raise_error;
     int s_prefer_number;
     int s_ext_boolean; /* I8 -> int*/
+    int s_targ;
     int sign;  
     char *word;
     char *current;
@@ -2666,8 +2681,9 @@ parse_option(char * s, int options=0)
     s_prefer_number = 0;
     s_ext_boolean   = 0;
     options         = 0;
-    current = s;
-    for( ;*current && ( !isALPHA( *current ) && *current!='+' && *current!='-' ) ; ++current ); 
+    s_targ          = 1;
+
+    for( current = s;*current && ( !isALPHA( *current ) && *current!='+' && *current!='-' ) ; ++current ); 
 
     word = current;
     while( *word ){
@@ -2683,6 +2699,14 @@ parse_option(char * s, int options=0)
 	}
 	for( ; *current && ( isALNUM( *current ) || *current == '_' ); ++current );
 	switch( current - word ){
+        case 4:
+            if ( !strncmp( "targ", word, 4)){
+                    s_targ = sign;
+            }
+            else {
+                error = 1;
+            };
+            break;
 	case 6:
 	    if (!strncmp("strict", word, 6)){
 		s_strict = sign;
@@ -2739,13 +2763,14 @@ parse_option(char * s, int options=0)
 	for(; *current && !isALPHA(*current) && *current!='+' && *current!='-'; ++current);
 	word = current;
     };	
-    SIGN_BOOL_APPLY( options, s_strict,   OPT_STRICT );
-    SIGN_BOOL_APPLY( options, s_milldate, OPT_MILLSEC_DATE );
-    SIGN_BOOL_APPLY( options, s_utf8_decode, OPT_DECODE_UTF8 );
-    SIGN_BOOL_APPLY( options, s_utf8_encode, OPT_ENCODE_UTF8 );
-    SIGN_BOOL_APPLY( options, s_raise_error, OPT_RAISE_ERROR );
+    SIGN_BOOL_APPLY( options, s_strict,        OPT_STRICT );
+    SIGN_BOOL_APPLY( options, s_milldate,      OPT_MILLSEC_DATE );
+    SIGN_BOOL_APPLY( options, s_utf8_decode,   OPT_DECODE_UTF8 );
+    SIGN_BOOL_APPLY( options, s_utf8_encode,   OPT_ENCODE_UTF8 );
+    SIGN_BOOL_APPLY( options, s_raise_error,   OPT_RAISE_ERROR );
     SIGN_BOOL_APPLY( options, s_prefer_number, OPT_PREFER_NUMBER );
     SIGN_BOOL_APPLY( options, s_ext_boolean,   OPT_JSON_BOOLEAN );
+    SIGN_BOOL_APPLY( options, s_targ,          OPT_TARG );
     mXPUSHi(  options ); 
 	
 MODULE=Storable::AMF
