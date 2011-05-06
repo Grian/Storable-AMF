@@ -3,7 +3,7 @@ use strict;
 use warnings;
 BEGIN{
 	our $VERSION;
-	$VERSION='0.96' unless $INC{'Storable/AMF0.pm'};
+	$VERSION='0.97' unless $INC{'Storable/AMF0.pm'};
 }
 use Storable::AMF0; # install and create all methods
 use Exporter 'import';

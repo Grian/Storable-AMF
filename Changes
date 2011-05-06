@@ -365,11 +365,14 @@ Revision history for Perl extension Storable::AMF.
 	- added more tests for amf3 integer convertion t/08-amf3_integer.t
 	- uncomment memleak for amf3
 
-0.96	20011-01-03
+0.96	20011-04-03
 	- better freeze integer ( added test for boundary conditions )
 	- added examples 
         - added use TARG ( about 25% speed improvement for freeze )
         - added bench for TARG usage
 	
+0.97    2011-04-06
+        - changed memtest code from Devel::Gladiator
+        - put forgotted PUTBACK
 
 
