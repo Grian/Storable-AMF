@@ -15,7 +15,34 @@ BEGIN{
 }
 
 our (@EXPORT, @EXPORT_OK);
-@EXPORT_OK=qw(ref_mem_safe my_readdir my_readfile);
+our $msg;
+@EXPORT_OK=qw(ref_mem_safe my_readdir my_readfile loose $msg total_sv);
+
+*total_sv = \&Storable::AMF::Util::total_sv;
+sub loose(&){
+    my $sub = shift;
+    my $have = total_sv();
+    my $delta;
+
+    { 
+        my $c;
+        &$sub() for 1;
+    };
+    return $delta unless $delta = $msg = total_sv() - $have;
+
+    {
+        my $c = &$sub();
+    };
+    return 0 if total_sv() - $have == $delta;
+    return $delta unless $delta = $msg = total_sv() - $have;
+
+    $have = total_sv();
+    
+    {
+        my $c = &$sub();
+    };
+    return $delta = $msg = total_sv() - $have;
+}
 
 use Carp qw(croak);
 #@$a = __PACKAGE__->my_items( 't/AMF0' );

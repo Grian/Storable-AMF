@@ -33,6 +33,7 @@ t/31-can-AMF0.t
 t/32-can-AMF3.t
 t/40-negative-freeze.t
 t/41-neg-parse.t
+t/45-total-sv.t
 t/46-mem-safe-AMF0.t
 t/47-mem-safe-AMF3.t
 t/48-mem-safe-neg-AMF0.t

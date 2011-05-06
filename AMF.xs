@@ -226,7 +226,8 @@ inline void
 io_restorepoint(pTHX_ struct io_struct *io, struct amf3_restore_point *p){
     io_set_position(io, p->offset_buffer);	
     while(av_len(io->arr_object) > p->offset_object){
-        sv_2mortal(av_pop(io->arr_object));
+        SV * abc = av_pop(io->arr_object);
+        sv_2mortal(abc);
     }
     while(av_len(io->arr_trait) > p->offset_trait){
         sv_2mortal(av_pop(io->arr_trait));
@@ -1616,7 +1617,6 @@ inline SV * amf3_parse_array(pTHX_ struct io_struct *io){
         amf3_store_object_rv(aTHX_  io, RETVALUE);
         obj_pos = av_len(io->arr_object); 
 
-
         recover = FALSE;
         if (str_len !=1){
             pstr = amf3_read_string(aTHX_  io, str_len, &plen);
@@ -1651,7 +1651,8 @@ inline SV * amf3_parse_array(pTHX_ struct io_struct *io){
         if (!recover) {
             int i;
             for(i=0; i< len; ++i){
-                av_store(array, i, amf3_parse_one(aTHX_  io));
+                SV *item = amf3_parse_one(aTHX_  io);
+                av_store(array, i, item);
             };
         }
         else {
@@ -1681,6 +1682,12 @@ inline SV * amf3_parse_array(pTHX_ struct io_struct *io){
                 (void) snprintf(buf, sizeof(buf), "%d", i);
                 (void) hv_store(hv, buf, strlen(buf), amf3_parse_one(aTHX_  io), 0);
             }
+
+            /* (void) snprintf(buf, sizeof(buf), "%d", 2);
+            (void) hv_store(hv, buf, strlen(buf), newSVpvn( "abc", 3), 0);
+            (void) snprintf(buf, sizeof(buf), "%d", 1);
+            (void) hv_store(hv, buf, strlen(buf), newSVpvn( "abd", 3), 0); */
+
         };
         if (io->options & OPT_STRICT){
             if (SvREFCNT(RETVALUE)>1){
@@ -2337,6 +2344,7 @@ thaw(SV *data, ...)
             SV * opt = ST(1);
             if (! SvIOK(opt)){
                 warn( "options are not integer" );
+                PUTBACK;
                 return ;
             };
             io->options = SvIV(opt);
@@ -2382,6 +2390,7 @@ deparse_amf(SV *data, ...)
             SV * opt = ST(1);
             if (! SvIOK(opt)){
                 warn( "options are not integer" );
+                PUTBACK;
                 return ;
             };
             io->options = SvIV(opt);
@@ -2458,6 +2467,7 @@ deparse_amf(data, ...)
             SV * opt = ST(1);
             if (! SvIOK(opt)){
                 warn( "invalid options: " );
+                PUTBACK;
                 return ;
             };
             io->options = SvIV(opt);
@@ -2507,8 +2517,8 @@ thaw(data, ...)
         else {
             SV * opt = ST(1);
             if (! SvIOK(opt)){
-                sv_dump(opt);
                 warn( "options are not integer" );
+                PUTBACK;
                 return ;
             };
             io->options = SvIV(opt);
@@ -2772,5 +2782,37 @@ parse_option(char * s, int options=0)
     SIGN_BOOL_APPLY( options, s_ext_boolean,   OPT_JSON_BOOLEAN );
     SIGN_BOOL_APPLY( options, s_targ,          OPT_TARG );
     mXPUSHi(  options ); 
+
+MODULE = Storable::AMF0 PACKAGE = Storable::AMF::Util
+
+void
+total_sv()
+    PPCODE:
+    I32 visited  = 0;
+    SV* sva;
+    for( sva = PL_sv_arenaroot; sva; sva = (SV*)SvANY(sva)) {
+        SV * svend = &sva[SvREFCNT(sva)];
+        SV * svi;
+        /* fprintf( stderr, "=%p %d\n", sva, SvREFCNT( sva ) ); */
+        for( svi = sva + 1; svi<svend; ++svi ){
+            if ( SvTYPE(svi) != SVTYPEMASK && SvREFCNT(svi) ){
+                /** skip pads, they have a PVAV as their first element inside a PVAV **/
+                if (SvTYPE(svi) == SVt_PVAV &&  av_len( (AV*) svi) != -1) {
+                    SV** first = AvARRAY((AV*)svi);
+                    if (first && *first && SvTYPE(*first) == SVt_PVAV) {
+                        continue;
+                    }
+                    if (first && *first && SvTYPE(*first) == SVt_PVCV) {
+                        continue;
+                    }
+                }
+                if (SvTYPE(svi) == SVt_PVCV && CvROOT((CV*)svi) == 0) {
+                    continue;
+                }
+                ++visited;
+            }
+        }
+    }
+    mXPUSHi( visited );
 	
 MODULE=Storable::AMF

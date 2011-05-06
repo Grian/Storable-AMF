@@ -1,22 +1,12 @@
-use lib 't';
 use ExtUtils::testlib;
-use Storable::AMF3 qw(freeze thaw ref_lost_memory ref_clear);
+use Storable::AMF3 qw(freeze thaw ref_lost_memory ref_clear );
 use Scalar::Util qw(refaddr);
-use GrianUtils qw(ref_mem_safe);
+use lib 't';
+use GrianUtils qw(ref_mem_safe $msg loose);
 use strict;
 use warnings;
 no warnings 'once';
 use Data::Dumper;
-our $msg;
-sub tt(&);
-sub tt(&){
-    my $sub = shift;
-    my $s = ref_mem_safe( $sub );
-    $msg = $s;
-    return $s if $s;
-    return undef;
-}
-
 
 my @item ;
 push @item, GrianUtils->my_items($_) for qw( t/AMF0 t/AMF3 );
@@ -33,8 +23,8 @@ TEST_LOOP: for my $item (@item){
         my $a2 = $freeze;
         chop ($a2);
         
-        ok(tt { my $a = thaw ( $a1 );},  "thaw $name extra - $msg");
-        ok(tt { my $a = thaw ( $a2 );},  "thaw without one char $name - $msg");
+        ok( !loose { my $a = thaw ( $a1 );},  "thaw $name extra - $msg");
+        ok( !loose { my $a = thaw ( $a2 );},  "thaw without one char $name - $msg");
 }
 
 
