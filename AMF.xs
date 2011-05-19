@@ -319,8 +319,19 @@ inline void io_register_error_and_free(pTHX_ struct io_struct *io, int errtype, 
         sv_2mortal((SV*) pointer);
     Siglongjmp(io->target_error, errtype);
 }
-inline void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version){
+inline void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version, SV * sv_option){
     /*    PerlInterpreter *my_perl = io->interpreter; */
+    if ( sv_option ){
+        if (! SvIOK(sv_option)){
+            warn( "options are not integer" );
+            io_register_error( io, ERR_BAD_OPTION );
+            return;
+        };
+        io->options = SvIV(sv_option);
+    }
+    else {
+        io->options = DEFAULT_MASK;
+    }
     io->ptr = (unsigned char *) SvPVX(data);
     io->end = io->ptr + SvCUR(data);
     io->pos = io->ptr;
@@ -2324,7 +2335,7 @@ dclone(SV * data)
         XPUSHs(retvalue);
 
 void
-thaw(SV *data, ...)
+thaw(SV *data, SV *sv_option = 0)
     ALIAS:
 	Storable::AMF::thaw=1
 	Storable::AMF::thaw0=2
@@ -2335,30 +2346,16 @@ thaw(SV *data, ...)
     PPCODE:
 	PERL_UNUSED_VAR(ix);
         if (SvMAGICAL(data))
-        mg_get(data);
-        /* sting options mode */
-        if (1 == items ){
-            io->options = DEFAULT_MASK;
-        }
-        else {
-            SV * opt = ST(1);
-            if (! SvIOK(opt)){
-                warn( "options are not integer" );
-                PUTBACK;
-                return ;
-            };
-            io->options = SvIV(opt);
-        };
-
+            mg_get(data);
         if (SvPOKp(data)){
             if (SvUTF8(data)) {
                 croak("Storable::AMF0::thaw(data, ...): data is in utf8. Can't process utf8");
             };
-            io_in_init(aTHX_  io, data, AMF0_VERSION);
             if ( Sigsetjmp(io->target_error, 0) ){
 		io_format_error( aTHX_ io );
             }
             else {
+                io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
                 retvalue = (SV*) (io->parse_one_object(aTHX_  io));
                 retvalue = sv_2mortal(retvalue);
 		io_test_eof( aTHX_ io );
@@ -2371,7 +2368,7 @@ thaw(SV *data, ...)
         }
 
 void
-deparse_amf(SV *data, ...)
+deparse_amf(SV *data, SV * sv_option = 0)
     PROTOTYPE: $;$
     ALIAS:
 	Storable::AMF::deparse_amf=1
@@ -2382,26 +2379,13 @@ deparse_amf(SV *data, ...)
 	PERL_UNUSED_VAR(ix);
         if (SvMAGICAL(data))
 	    mg_get(data);
-        /* sting options mode */
-        if (1 >= items ){
-            io->options = DEFAULT_MASK;
-        }
-        else {
-            SV * opt = ST(1);
-            if (! SvIOK(opt)){
-                warn( "options are not integer" );
-                PUTBACK;
-                return ;
-            };
-            io->options = SvIV(opt);
-        };
 
         if (SvPOKp(data)){
             if (SvUTF8(data)) {
                 croak("Storable::AMF0::deparse_amf(data, ...): data is in utf8. Can't process utf8");
             };
-            io_in_init(aTHX_  io, data, AMF0_VERSION);
             if ( ! Sigsetjmp(io->target_error, 0)){
+                io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
                 
                 retvalue = (SV*) (io->parse_one_object(aTHX_  io));
                 retvalue = sv_2mortal(retvalue);
@@ -2449,8 +2433,7 @@ void freeze(SV *data, ... )
 MODULE = Storable::AMF0		PACKAGE = Storable::AMF3		
 
 void
-deparse_amf(data, ...)
-    SV * data
+deparse_amf(SV *data, SV* sv_option = 0)
     PROTOTYPE: $;$
     INIT:
         SV* retvalue;
@@ -2458,27 +2441,14 @@ deparse_amf(data, ...)
     PPCODE:
 
         if (SvMAGICAL(data))
-        mg_get(data);
-        /* Setting options mode */
-        if (1 == items){
-            io->options = DEFAULT_MASK;
-        }
-        else {
-            SV * opt = ST(1);
-            if (! SvIOK(opt)){
-                warn( "invalid options: " );
-                PUTBACK;
-                return ;
-            };
-            io->options = SvIV(opt);
-        };
+            mg_get(data);
 
         if (SvPOKp(data)){
             if (SvUTF8(data)) {
                 croak("Storable::AMF3::deparse_amf(data, ...): data is in utf8. Can't process utf8");
             }
-            io_in_init(aTHX_  io, data, AMF3_VERSION);
             if ( ! Sigsetjmp(io->target_error, 0)){
+                io_in_init(aTHX_  io, data, AMF3_VERSION, sv_option);
                 retvalue = (SV*) (amf3_parse_one(aTHX_  io));
                 sv_2mortal(retvalue);
                 sv_setsv(ERRSV, &PL_sv_undef);
@@ -2497,8 +2467,7 @@ deparse_amf(data, ...)
         }
 
 void
-thaw(data, ...)
-    SV * data
+thaw(SV *data, SV *sv_option = 0)
     PROTOTYPE: $;$
     INIT:
         SV* retvalue;
@@ -2509,27 +2478,14 @@ thaw(data, ...)
 	PERL_UNUSED_VAR(ix);
 
         if (SvMAGICAL(data))
-        mg_get(data);
-        /* Setting options mode */
-        if (1 == items){
-            io->options = DEFAULT_MASK;
-        }
-        else {
-            SV * opt = ST(1);
-            if (! SvIOK(opt)){
-                warn( "options are not integer" );
-                PUTBACK;
-                return ;
-            };
-            io->options = SvIV(opt);
-        };
+            mg_get(data);
 
         if (SvPOKp(data)){
             if (SvUTF8(data)) {
                 croak("Storable::AMF3::thaw(data, ...): data is in utf8. Can't process utf8");
             }
-            io_in_init(aTHX_  io, data, AMF3_VERSION);
             if ( ! Sigsetjmp(io->target_error, 0)){
+                io_in_init(aTHX_  io, data, AMF3_VERSION, sv_option);
                 retvalue = (SV*) (amf3_parse_one(aTHX_  io));
                 sv_2mortal(retvalue);
 		io_test_eof( aTHX_ io );
@@ -2552,15 +2508,14 @@ _test_thaw_integer(SV*data)
     PPCODE:
 
         if (SvMAGICAL(data))
-        mg_get(data);
-	io->options = 0;
+            mg_get(data);
 
         if (SvPOKp(data)){
             if (SvUTF8(data)) {
                 croak("Storable::AMF3::_test_thaw_integer data is in utf8. Can't process utf8");
             }
-            io_in_init(aTHX_  io, data, AMF3_VERSION);
             if ( ! Sigsetjmp(io->target_error, 0)){
+                io_in_init(aTHX_  io, data, AMF3_VERSION, 0 );
                 retvalue = (SV*) (amf3_parse_integer(aTHX_  io));
                 sv_2mortal(retvalue);
 		io_test_eof( aTHX_ io );
