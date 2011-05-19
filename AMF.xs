@@ -196,6 +196,7 @@ struct io_struct{
     int options;
     struct io_amf_option* ext_option;
     SV * (*parse_one_object)(pTHX_ struct io_struct * io);
+    char *subname;
 };
 
 STATIC_INLINE SV * amf0_parse_one(pTHX_ struct io_struct * io);
@@ -332,6 +333,16 @@ inline void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version, 
     else {
         io->options = DEFAULT_MASK;
     }
+    
+    if (SvMAGICAL(data))
+        mg_get(data);
+
+    if (!SvPOKp(data))
+        croak("%s. data must be a string", io->subname);
+
+    if (SvUTF8(data)) 
+        croak("%s: data is utf8. Can't process utf8", io->subname);
+    
     io->ptr = (unsigned char *) SvPVX(data);
     io->end = io->ptr + SvCUR(data);
     io->pos = io->ptr;
@@ -2345,26 +2356,17 @@ thaw(SV *data, SV *sv_option = 0)
         struct io_struct io[1];
     PPCODE:
 	PERL_UNUSED_VAR(ix);
-        if (SvMAGICAL(data))
-            mg_get(data);
-        if (SvPOKp(data)){
-            if (SvUTF8(data)) {
-                croak("Storable::AMF0::thaw(data, ...): data is in utf8. Can't process utf8");
-            };
-            if ( Sigsetjmp(io->target_error, 0) ){
-		io_format_error( aTHX_ io );
-            }
-            else {
-                io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
-                retvalue = (SV*) (io->parse_one_object(aTHX_  io));
-                retvalue = sv_2mortal(retvalue);
-		io_test_eof( aTHX_ io );
-		sv_setsv(ERRSV, &PL_sv_undef);
-		XPUSHs(retvalue);
-            }
+        if ( ! Sigsetjmp(io->target_error, 0) ){
+            io->subname = "Storable::AMF0::thaw( data, option )";
+            io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
+            retvalue = (SV*) (io->parse_one_object(aTHX_  io));
+            retvalue = sv_2mortal(retvalue);
+            io_test_eof( aTHX_ io );
+            sv_setsv(ERRSV, &PL_sv_undef);
+            XPUSHs(retvalue);
         }
         else {
-            croak("USAGE Storable::AMF0::thaw( $amf0 ). First arg must be string");
+            io_format_error( aTHX_ io );
         }
 
 void
@@ -2377,35 +2379,24 @@ deparse_amf(SV *data, SV * sv_option = 0)
 	struct io_struct io[1];
     PPCODE:
 	PERL_UNUSED_VAR(ix);
-        if (SvMAGICAL(data))
-	    mg_get(data);
-
-        if (SvPOKp(data)){
-            if (SvUTF8(data)) {
-                croak("Storable::AMF0::deparse_amf(data, ...): data is in utf8. Can't process utf8");
-            };
-            if ( ! Sigsetjmp(io->target_error, 0)){
-                io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
-                
-                retvalue = (SV*) (io->parse_one_object(aTHX_  io));
-                retvalue = sv_2mortal(retvalue);
-                sv_setsv(ERRSV, &PL_sv_undef);
-                if (GIMME_V == G_ARRAY){
-                    XPUSHs(retvalue);
-                    XPUSHs( sv_2mortal(newSViv( io->pos - io->ptr )) );
-                }
-                else {
-                    XPUSHs(retvalue);
-                }
+        if ( ! Sigsetjmp(io->target_error, 0)){
+            io->subname = "Storable::AMF0::deparse( data, option )";
+            io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
+            
+            retvalue = (SV*) (io->parse_one_object(aTHX_  io));
+            retvalue = sv_2mortal(retvalue);
+            sv_setsv(ERRSV, &PL_sv_undef);
+            if (GIMME_V == G_ARRAY){
+                XPUSHs(retvalue);
+                XPUSHs( sv_2mortal(newSViv( io->pos - io->ptr )) );
             }
             else {
-		io_format_error( aTHX_ io );
+                XPUSHs(retvalue);
             }
         }
         else {
-            croak("USAGE Storable::AMF0::deparse_amf( $amf0 ). First arg must be string");
+            io_format_error( aTHX_ io );
         }
-
 
 
 void freeze(SV *data, ... )
@@ -2439,31 +2430,20 @@ deparse_amf(SV *data, SV* sv_option = 0)
         SV* retvalue;
         struct io_struct io[1];
     PPCODE:
+        if ( ! Sigsetjmp(io->target_error, 0)){
+            io->subname = "Storable::AMF3::deparse_amf( data, option )";
+            io_in_init(aTHX_  io, data, AMF3_VERSION, sv_option);
+            retvalue = (SV*) (amf3_parse_one(aTHX_  io));
+            sv_2mortal(retvalue);
+            sv_setsv(ERRSV, &PL_sv_undef);
 
-        if (SvMAGICAL(data))
-            mg_get(data);
-
-        if (SvPOKp(data)){
-            if (SvUTF8(data)) {
-                croak("Storable::AMF3::deparse_amf(data, ...): data is in utf8. Can't process utf8");
-            }
-            if ( ! Sigsetjmp(io->target_error, 0)){
-                io_in_init(aTHX_  io, data, AMF3_VERSION, sv_option);
-                retvalue = (SV*) (amf3_parse_one(aTHX_  io));
-                sv_2mortal(retvalue);
-                sv_setsv(ERRSV, &PL_sv_undef);
-
-		XPUSHs(retvalue);
-                if (GIMME_V == G_ARRAY){
-                    XPUSHs( sv_2mortal(newSViv( io->pos - io->ptr )) );
-                }
-            }
-            else {
-		io_format_error(aTHX_ io );
+            XPUSHs(retvalue);
+            if (GIMME_V == G_ARRAY){
+                XPUSHs( sv_2mortal(newSViv( io->pos - io->ptr )) );
             }
         }
         else {
-            croak("USAGE Storable::AMF3::deparse_amf( $amf_version ). First arg must be string");
+            io_format_error(aTHX_ io );
         }
 
 void
@@ -2476,28 +2456,17 @@ thaw(SV *data, SV *sv_option = 0)
 	Storable::AMF::thaw3=1
     PPCODE:
 	PERL_UNUSED_VAR(ix);
-
-        if (SvMAGICAL(data))
-            mg_get(data);
-
-        if (SvPOKp(data)){
-            if (SvUTF8(data)) {
-                croak("Storable::AMF3::thaw(data, ...): data is in utf8. Can't process utf8");
-            }
-            if ( ! Sigsetjmp(io->target_error, 0)){
-                io_in_init(aTHX_  io, data, AMF3_VERSION, sv_option);
-                retvalue = (SV*) (amf3_parse_one(aTHX_  io));
-                sv_2mortal(retvalue);
-		io_test_eof( aTHX_ io );
-		sv_setsv(ERRSV, &PL_sv_undef);
-		XPUSHs(retvalue);
-            }
-            else {
-		io_format_error(aTHX_ io);
-            }
+        if ( ! Sigsetjmp(io->target_error, 0)){
+            io->subname = "Storable::AMF3::thaw( data, option )";
+            io_in_init(aTHX_  io, data, AMF3_VERSION, sv_option);
+            retvalue = (SV*) (amf3_parse_one(aTHX_  io));
+            sv_2mortal(retvalue);
+            io_test_eof( aTHX_ io );
+            sv_setsv(ERRSV, &PL_sv_undef);
+            XPUSHs(retvalue);
         }
         else {
-            croak("USAGE Storable::AMF3::thaw( $amf3 ). First arg must be string");
+            io_format_error(aTHX_ io);
         }
 
 void
@@ -2506,31 +2475,19 @@ _test_thaw_integer(SV*data)
         SV* retvalue;
         struct io_struct io[1];
     PPCODE:
+        if ( ! Sigsetjmp(io->target_error, 0)){
+            io->subname = "Storable::AMF3::_test_thaw_integer( data, option )";
+            io_in_init(aTHX_  io, data, AMF3_VERSION, 0 );
+            retvalue = (SV*) (amf3_parse_integer(aTHX_  io));
+            sv_2mortal(retvalue);
+            io_test_eof( aTHX_ io );
 
-        if (SvMAGICAL(data))
-            mg_get(data);
-
-        if (SvPOKp(data)){
-            if (SvUTF8(data)) {
-                croak("Storable::AMF3::_test_thaw_integer data is in utf8. Can't process utf8");
-            }
-            if ( ! Sigsetjmp(io->target_error, 0)){
-                io_in_init(aTHX_  io, data, AMF3_VERSION, 0 );
-                retvalue = (SV*) (amf3_parse_integer(aTHX_  io));
-                sv_2mortal(retvalue);
-		io_test_eof( aTHX_ io );
-
-                sv_setsv(ERRSV, &PL_sv_undef);
-		XPUSHs(retvalue);
-            }
-            else {
-		io_format_error(aTHX_ io );
-            }
+            sv_setsv(ERRSV, &PL_sv_undef);
+            XPUSHs(retvalue);
         }
         else {
-            croak("USAGE Storable::AMF3::_test_thaw_integer( $amf3 ). First arg must be string");
+            io_format_error(aTHX_ io );
         }
-
 
 void
 _test_freeze_integer(SV*data)
