@@ -8,3 +8,4 @@ Build
 MYMETA.yml
 _build
 *.tar.gz
+[a-z].pl
