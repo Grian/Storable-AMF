@@ -374,5 +374,6 @@ Revision history for Perl extension Storable::AMF.
 0.97    2011-04-06
         - changed memtest code from Devel::Gladiator
         - put forgotted PUTBACK
+        - added amf_tmp_storage for thaw()
 
 

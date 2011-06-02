@@ -179,7 +179,6 @@ struct io_struct{
     HV * RV_HASH;
     int buffer_step_inc;
     int arr_max;
-    char status;
     Sigjmp_buf target_error;
     int error_code;
     AV *arr_string;
@@ -197,7 +196,12 @@ struct io_struct{
     struct io_amf_option* ext_option;
     SV * (*parse_one_object)(pTHX_ struct io_struct * io);
     char *subname;
+    char status;
+    bool reuse;
 };
+
+inline SV*  get_tmp_storage( pTHX_ SV *option );
+inline void destroy_tmp_storage( pTHX_ SV *self);
 
 STATIC_INLINE SV * amf0_parse_one(pTHX_ struct io_struct * io);
 STATIC_INLINE SV * amf3_parse_one(pTHX_ struct io_struct * io);
@@ -320,19 +324,79 @@ inline void io_register_error_and_free(pTHX_ struct io_struct *io, int errtype, 
         sv_2mortal((SV*) pointer);
     Siglongjmp(io->target_error, errtype);
 }
-inline void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version, SV * sv_option){
-    /*    PerlInterpreter *my_perl = io->interpreter; */
-    if ( sv_option ){
-        if (! SvIOK(sv_option)){
-            warn( "options are not integer" );
-            io_register_error( io, ERR_BAD_OPTION );
-            return;
-        };
-        io->options = SvIV(sv_option);
+inline SV*  get_tmp_storage(pTHX_ SV* option){
+    struct io_struct * io;
+    SV *sv ;
+    AV *tmp;
+    Newxz( io, 1, struct io_struct );
+    sv = sv_newmortal();
+    sv_setref_iv( sv, "Storable::AMF0::TemporaryStorage", PTR2IV( io ) );
+
+    tmp = io->arr_object = newAV();
+    // 0 && av_extend( tmp, 16 ); 
+
+    tmp = io->arr_string = newAV();
+    // 0 && av_extend( tmp, 16 ); 
+
+    tmp = io->arr_trait = newAV();
+    // 0 && av_extend( tmp, 16 ); 
+
+    if ( option ){
+        io->options = SvIV(option);
     }
     else {
         io->options = DEFAULT_MASK;
     }
+    return sv;
+}
+inline void destroy_tmp_storage( pTHX_ SV *self ){
+    if ( ! SvROK( self )) {
+        croak( "Bad Storable::AMF0::TemporaryStorage" );
+    }
+    else {
+        struct io_struct *io;
+        io = INT2PTR( struct io_struct*, SvIV( SvRV(  self )) );
+        SvREFCNT_dec( (SV *) io->arr_object );
+        SvREFCNT_dec( (SV *) io->arr_string );
+        SvREFCNT_dec( (SV *) io->arr_trait );
+        Safefree( io );  
+    /*    fprintf( stderr, "Destroy\n"); */
+    }
+}
+inline void io_in_cleanup(pTHX_ struct io_struct *io){
+    av_clear( io->arr_object );
+    if ( AMF3_VERSION == io->final_version ){
+        av_clear( io->arr_string );
+        av_clear( io->arr_trait );
+    };
+}
+inline void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version, SV * sv_option){
+    struct io_struct *reuse_storage_ptr;
+    bool  reuse_storage;
+    /*    PerlInterpreter *my_perl = io->interpreter; */
+    if ( sv_option ){
+        if (! SvIOK(sv_option)){
+            if ( ! sv_isobject( sv_option )){
+                warn( "options are not integer" );
+                io_register_error( io, ERR_BAD_OPTION );
+                return;
+            }
+            else {
+                reuse_storage = 1;
+                reuse_storage_ptr = INT2PTR( struct io_struct *, SvIV( SvRV( sv_option )));
+                io->options       = reuse_storage_ptr->options;
+            }
+        } 
+        else {        
+            reuse_storage = 0;
+            io->options = SvIV(sv_option);
+        }
+    }
+    else {
+        io->options = DEFAULT_MASK;
+        reuse_storage     = 0;
+    }
+    io->reuse = reuse_storage;
     
     if (SvMAGICAL(data))
         mg_get(data);
@@ -348,7 +412,7 @@ inline void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version, 
     io->pos = io->ptr;
     io->status  = 'r';
     io->version = amf_version;
-    if ( amf_version == AMF0_VERSION && (io->ptr[0] ==MARKER0_AMF_PLUS) ){
+    if ( amf_version == AMF0_VERSION && (io->ptr[0] == MARKER0_AMF_PLUS) ){
 	amf_version = AMF3_VERSION;
 	++io->pos;
     };
@@ -356,17 +420,30 @@ inline void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version, 
     /* Support when  array extend is too big */
     io->arr_max = SvCUR( data );
 
-    sv_2mortal( (SV *) (io->arr_object = newAV()) );
-    av_extend( io->arr_object, 32 ); 
-    if (amf_version == AMF3_VERSION) {
-        io->arr_string = newAV();
-        sv_2mortal((SV*) io->arr_string);
-        io->arr_trait = newAV();
-        sv_2mortal((SV*) io->arr_trait);
-	io->parse_one_object = amf3_parse_one;
+    if ( reuse_storage ){
+        io->arr_object = reuse_storage_ptr->arr_object;
+        if (amf_version == AMF3_VERSION) {
+            io->arr_string = reuse_storage_ptr->arr_string;
+            io->arr_trait =  reuse_storage_ptr->arr_trait;
+            io->parse_one_object = amf3_parse_one;
+        }
+        else {
+            io->parse_one_object = amf0_parse_one;
+        }
     }
     else {
-	io->parse_one_object = amf0_parse_one;
+        sv_2mortal( (SV *) (io->arr_object = newAV()) );
+        av_extend( io->arr_object, 32 ); 
+        if (amf_version == AMF3_VERSION) {
+            io->arr_string = newAV();
+            sv_2mortal((SV*) io->arr_string);
+            io->arr_trait = newAV();
+            sv_2mortal((SV*) io->arr_trait);
+            io->parse_one_object = amf3_parse_one;
+        }
+        else {
+            io->parse_one_object = amf0_parse_one;
+        }
     }
 }
 inline void io_in_destroy(pTHX_ struct io_struct * io, AV *a){
@@ -391,6 +468,7 @@ inline void io_in_destroy(pTHX_ struct io_struct * io, AV *a){
                 }
             }
         }
+        av_clear(a); /* cleaning array */
     }
     else {
         if (io->final_version == AMF0_VERSION){
@@ -2327,7 +2405,27 @@ inline void ref_clear(pTHX_ HV * go_once, SV *sv){
         hv_clear(ref_hash);
     }
 }    
+/* Start XS defines
+ *
+ *
+ *
+ *
+ *
+ */
 
+/* Temporary Intenale Storage */
+MODULE = Storable::AMF0 PACKAGE = Storable::AMF0::TemporaryStorage
+
+void
+new(SV *class, SV *option=0)
+    PPCODE:
+    PERL_UNUSED_VAR( class );
+    XPUSHs( sv_2mortal( get_tmp_storage( aTHX_ option )));
+
+void
+DESTROY(SV *self)
+    PPCODE:
+    destroy_tmp_storage( aTHX_ self );
 
 MODULE = Storable::AMF0 PACKAGE = Storable::AMF0		
 
@@ -2345,6 +2443,15 @@ dclone(SV * data)
         sv_2mortal(retvalue);
         XPUSHs(retvalue);
 
+void 
+amf_tmp_storage(SV *option = 0)
+    INIT:
+        SV * retvalue;
+    PPCODE:
+        retvalue = get_tmp_storage(aTHX, option);
+        XPUSHs(retvalue);
+
+
 void
 thaw(SV *data, SV *sv_option = 0)
     ALIAS:
@@ -2360,6 +2467,9 @@ thaw(SV *data, SV *sv_option = 0)
             io->subname = "Storable::AMF0::thaw( data, option )";
             io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
             retvalue = (SV*) (io->parse_one_object(aTHX_  io));
+            /* clean up storable unless need */
+            if ( io->reuse )
+                io_in_cleanup(aTHX_ io);
             retvalue = sv_2mortal(retvalue);
             io_test_eof( aTHX_ io );
             sv_setsv(ERRSV, &PL_sv_undef);
@@ -2726,5 +2836,5 @@ total_sv()
         }
     }
     mXPUSHi( visited );
-	
+
 MODULE=Storable::AMF
