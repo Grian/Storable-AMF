@@ -381,3 +381,6 @@ Revision history for Perl extension Storable::AMF.
         - make work amf_tmp_storage for freeze
 
 
+0.99    2011-06-03
+        - thaw0_sv for utilizing hashref
+

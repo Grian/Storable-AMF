@@ -6,7 +6,9 @@ README
 .gitignore
 t/GrianUtils.pm
 ppport.h
-examples/bench_storage.pl
+examples/bench_storage_freeze.pl
+examples/bench_storage_thaw.pl
+examples/bench_thaw0_sv.pl
 lib/Storable/AMF.pm
 lib/Storable/AMF0.pm
 lib/Storable/AMF3.pm
