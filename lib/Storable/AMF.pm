@@ -16,7 +16,7 @@ our %EXPORT_TAGS = (
 		  new_date
 		  parse_serializator_option
 		  parse_option
-		  freeze0 freeze3 thaw0 thaw3
+		  freeze0 freeze3 thaw0 thaw3 thaw0_sv
 		  deparse_amf0 deparse_amf3
           )
     ]

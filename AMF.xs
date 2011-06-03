@@ -2366,6 +2366,69 @@ inline SV * amf3_parse_one(pTHX_ struct io_struct * io){
 	return 0; /* Never reach this statement */
     }
 }
+inline SV* amf0_parse_one_tmp( pTHX_ struct io_struct *io, SV * reuse ){
+    char marker;
+    SV * RETVALUE;
+    HV * obj;
+
+    int len_next;
+    char * key;
+    SV * value;
+    int obj_pos;
+
+    io_require( io, 1 );
+    marker = *(io->pos);
+    RETVALUE = reuse;
+
+    if ( MARKER0_OBJECT != MARKER0_OBJECT || ! SvROK( reuse ) ){
+        io_register_error( io, ERR_BAD_OBJECT );
+    }
+    obj = (HV *) SvRV(reuse);
+    if ( SvTYPE( obj ) != SVt_PVHV ){
+        io_register_error( io, ERR_BAD_OBJECT );
+    }
+    ++io->pos;
+        
+
+    hv_clear( obj );
+    SvREFCNT_inc_simple_void_NN( RETVALUE );
+    av_push(io->arr_object, RETVALUE);
+    obj_pos = av_len(io->arr_object);
+    while(1){
+        len_next = io_read_u16(io);
+        if (len_next == 0) {
+            char object_end;
+            object_end= io_read_marker(io);
+            if ((object_end == MARKER0_OBJECT_END))
+            {
+                if (io->options & OPT_STRICT){
+                    SV* RETVALUE = *av_fetch(io->arr_object, obj_pos, 0);
+                    if (SvREFCNT(RETVALUE) > 1)
+                        io_register_error(io, ERR_RECURRENT_OBJECT);
+                    ;
+                    SvREFCNT_inc_simple_void_NN(RETVALUE);
+                    return RETVALUE;
+                }
+                else {
+                    SvREFCNT_inc_simple_void_NN( RETVALUE );
+                    return RETVALUE;
+                    /* return (SV*) newRV_inc((SV*)obj); */
+                }
+            }
+            else {
+                io->pos--;
+                key = "";
+                value = amf0_parse_one(aTHX_  io);
+            }
+        }
+        else {
+            key = io_read_chars(io, len_next);
+            value = amf0_parse_one(aTHX_  io);
+        }
+
+        (void) hv_store(obj, key, len_next, value, 0);
+    }
+}
 STATIC_INLINE SV * amf0_parse_one(pTHX_ struct io_struct * io){
     unsigned char marker;
     marker = (unsigned char) io_read_marker(io);
@@ -2520,6 +2583,8 @@ amf_tmp_storage(SV *option = 0)
     PPCODE:
         retvalue = get_tmp_storage(aTHX, option);
         XPUSHs(retvalue);
+
+
 
 
 void
@@ -2923,5 +2988,31 @@ total_sv()
         }
     }
     mXPUSHi( visited );
+
+MODULE=Storable::AMF0 PACKAGE = Storable::AMF 
+
+void 
+thaw0_sv( SV * data, SV * element, SV *sv_option = 0)
+    INIT: 
+        SV * retvalue;
+        struct io_struct io[1];
+    PPCODE:
+	/* PERL_UNUSED_VAR(ix); */
+        if ( ! Sigsetjmp(io->target_error, 0) ){
+            io->subname = "Storable::AMF0::thaw( data, option )";
+            io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
+            retvalue = (SV*) (amf0_parse_one_tmp( aTHX_  io, element ));
+            /* clean up storable unless need */
+            if ( io->reuse )
+                io_in_cleanup(aTHX_ io);
+            retvalue = sv_2mortal(retvalue);
+            io_test_eof( aTHX_ io );
+            sv_setsv(ERRSV, &PL_sv_undef);
+
+            /* XPUSHs(retvalue); */
+        }
+        else {
+            io_format_error( aTHX_ io );
+        }
 
 MODULE=Storable::AMF
