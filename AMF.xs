@@ -203,6 +203,7 @@ inline void destroy_tmp_storage( pTHX_ SV *self);
 STATIC_INLINE SV * amf0_parse_one(pTHX_ struct io_struct * io);
 STATIC_INLINE SV * amf3_parse_one(pTHX_ struct io_struct * io);
 inline void io_in_destroy(pTHX_ struct io_struct * io, AV *);
+inline void io_out_cleanup(pTHX_ struct io_struct * io);
 
 inline void io_test_eof(pTHX_ struct io_struct *io);
 inline void io_register_error(struct io_struct *io, int);
@@ -305,6 +306,7 @@ void io_format_error(pTHX_ struct io_struct *io ){
 	}
     }
     else { /* io->status == 'w' */
+        io_out_cleanup(aTHX_ io);
 	if (io->options & OPT_RAISE_ERROR){
 	    croak("Format AMF%d: %s (ERR-%d)", io->version, message, error_code);
 	}
@@ -333,6 +335,19 @@ inline SV*  get_tmp_storage(pTHX_ SV* option){
     tmp = io->arr_string = newAV();
     tmp = io->arr_object = newAV();
 
+    io->hv_object        = newHV();
+    HvSHAREKEYS_off( io->hv_object );
+    io->hv_string        = newHV();
+    HvSHAREKEYS_off( io->hv_string );
+    io->hv_trait         = newHV();
+    HvSHAREKEYS_off( io->hv_trait );
+
+    /*
+    io->sv_buffer        = newSV(0);
+    (void)SvUPGRADE(io->sv_buffer, SVt_PV);
+    SvPOK_on( io->sv_buffer );
+    SvGROW( io->sv_buffer, 512 ); */
+
     if ( option ){
         io->options = SvIV(option);
     }
@@ -351,6 +366,10 @@ inline void destroy_tmp_storage( pTHX_ SV *self ){
         SvREFCNT_dec( (SV *) io->arr_trait );
         SvREFCNT_dec( (SV *) io->arr_string );
         SvREFCNT_dec( (SV *) io->arr_object );
+        SvREFCNT_dec( (SV *) io->hv_object );
+        SvREFCNT_dec( (SV *) io->hv_string );
+        SvREFCNT_dec( (SV *) io->hv_trait );
+        // SvREFCNT_dec( (SV *) io->sv_buffer );
         Safefree( io );  
     /*    fprintf( stderr, "Destroy\n"); */
     }
@@ -360,6 +379,13 @@ inline void io_in_cleanup(pTHX_ struct io_struct *io){
     if ( AMF3_VERSION == io->final_version ){
         av_clear( io->arr_string );
         av_clear( io->arr_trait );
+    };
+}
+inline void io_out_cleanup(pTHX_ struct io_struct *io){
+    hv_clear( io->hv_object );
+    if ( AMF3_VERSION == io->version ){
+        hv_clear( io->hv_string );
+        hv_clear( io->hv_trait );
     };
 }
 inline void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version, SV * sv_option){
@@ -476,24 +502,68 @@ inline void io_in_destroy(pTHX_ struct io_struct * io, AV *a){
         }
     }
 }
-inline void io_out_init(pTHX_ struct io_struct *io, SV*option, int amf_version){
+inline void io_out_init(pTHX_ struct io_struct *io, SV*sv_option, int amf_version){
     SV *sbuffer;
     unsigned int ibuf_size ;
     unsigned int ibuf_step ;
-    if ( option ){
-        if ( !SvIOK(option)){
+    io->version = amf_version;
+
+    if ( sv_option ){
+        if ( SvROK(sv_option) && sv_isobject( sv_option )){
+                struct io_struct *reuse_storage_ptr;
+                reuse_storage_ptr = INT2PTR( struct io_struct *, SvIV( SvRV( sv_option )));
+                io->options       = reuse_storage_ptr->options;
+                io->reuse = 1;
+                io->rc_string = 0;
+                io->rc_trait  = 0;
+                io->rc_object = 0;
+                
+                /*io->sv_buffer = reuse_storage_ptr->sv_buffer; */
+
+                io->hv_string = reuse_storage_ptr->hv_string;
+                io->hv_object = reuse_storage_ptr->hv_object;
+                io->hv_trait  = reuse_storage_ptr->hv_trait;
+
+    ibuf_size = 10240;
+    ibuf_step = 20480;
+
+
+    if ( io->options & OPT_TARG ){
+        dXSTARG;
+
+        io->sv_buffer = sbuffer = TARG;
+        (void)SvUPGRADE(sbuffer, SVt_PV);
+        SvPOK_on(sbuffer);
+        SvGROW( sbuffer, 512 );
+    }
+    else {
+        sbuffer = sv_2mortal(newSVpvn("",0));
+        SvGROW(sbuffer, ibuf_size);
+        io->sv_buffer = sbuffer;
+    }
+
+                io->buffer_step_inc = 1024;
+                io->ptr = (unsigned char *) SvPV_nolen(io->sv_buffer);
+                io->pos = io->ptr;
+                io->end = (unsigned char *) SvEND(io->sv_buffer);
+                io->status  = 'w';
+                return ;
+        }
+        else if ( !SvIOK(sv_option)){
             io_register_error( io, ERR_BAD_OPTION );
         }
         else {
-            io->options = SvIV( option );
+            io->options = SvIV( sv_option );
         }
     }
     else {
         io->options = DEFAULT_MASK;
     };
-    io->version = amf_version;
+    io->reuse = 0;
+    /* FIXME */
     ibuf_size = 10240;
     ibuf_step = 20480;
+
 
     if ( io->options & OPT_TARG ){
         dXSTARG;
@@ -2513,7 +2583,7 @@ deparse_amf(SV *data, SV * sv_option = 0)
         }
 
 
-void freeze(SV *data, ... )
+void freeze(SV *data, SV *sv_option = 0 )
     ALIAS:
 	Storable::AMF::freeze=1
 	Storable::AMF::freeze0=2
@@ -2523,9 +2593,11 @@ void freeze(SV *data, ... )
         struct io_struct io[1];
     PPCODE:
 	PERL_UNUSED_VAR(ix);
-        io_out_init(aTHX_  io, ( 1==items ? 0 : ST(1)), AMF0_VERSION);
         if (! Sigsetjmp(io->target_error, 0)){
+            io_out_init(aTHX_  io, sv_option, AMF0_VERSION);
             amf0_format_one(aTHX_  io, data);
+            if (io->reuse )
+                io_out_cleanup(aTHX_ io);
             retvalue = io_buffer(io);
             XPUSHs(retvalue);
             sv_setsv(ERRSV, &PL_sv_undef);
@@ -2635,7 +2707,7 @@ endian()
     PPCODE:
     PerlIO_printf(PerlIO_stderr(), "%s %x\n", GAX, BYTEORDER);
 
-void freeze(SV *data, ... )
+void freeze(SV *data, SV *sv_option = 0 )
     PROTOTYPE: $;$
     PREINIT:
         SV * retvalue;
@@ -2645,8 +2717,10 @@ void freeze(SV *data, ... )
     PPCODE:
 	PERL_UNUSED_VAR(ix); 
         if (! Sigsetjmp(io->target_error, 0)){
-            io_out_init(aTHX_  io, ( 1==items ? 0 : ST(1) ),AMF3_VERSION);
+            io_out_init(aTHX_  io, sv_option, AMF3_VERSION);
             amf3_format_one(aTHX_  io, data);
+            if (io->reuse )
+                io_out_cleanup(aTHX_ io);
             retvalue = io_buffer(io);
             XPUSHs(retvalue);
             sv_setsv(ERRSV, &PL_sv_undef);
