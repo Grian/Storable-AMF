@@ -332,14 +332,9 @@ inline SV*  get_tmp_storage(pTHX_ SV* option){
     sv = sv_newmortal();
     sv_setref_iv( sv, "Storable::AMF0::TemporaryStorage", PTR2IV( io ) );
 
-    tmp = io->arr_object = newAV();
-    // 0 && av_extend( tmp, 16 ); 
-
+    tmp = io->arr_trait  = newAV();
     tmp = io->arr_string = newAV();
-    // 0 && av_extend( tmp, 16 ); 
-
-    tmp = io->arr_trait = newAV();
-    // 0 && av_extend( tmp, 16 ); 
+    tmp = io->arr_object = newAV();
 
     if ( option ){
         io->options = SvIV(option);
@@ -356,9 +351,9 @@ inline void destroy_tmp_storage( pTHX_ SV *self ){
     else {
         struct io_struct *io;
         io = INT2PTR( struct io_struct*, SvIV( SvRV(  self )) );
-        SvREFCNT_dec( (SV *) io->arr_object );
-        SvREFCNT_dec( (SV *) io->arr_string );
         SvREFCNT_dec( (SV *) io->arr_trait );
+        SvREFCNT_dec( (SV *) io->arr_string );
+        SvREFCNT_dec( (SV *) io->arr_object );
         Safefree( io );  
     /*    fprintf( stderr, "Destroy\n"); */
     }
