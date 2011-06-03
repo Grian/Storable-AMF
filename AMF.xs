@@ -173,10 +173,7 @@ struct io_struct{
     unsigned char * ptr;
     unsigned char * pos;
     unsigned char * end;
-    void * this_perl;
     SV * sv_buffer;
-    int RV_COUNT;
-    HV * RV_HASH;
     int buffer_step_inc;
     int arr_max;
     Sigjmp_buf target_error;
@@ -532,10 +529,10 @@ inline void io_out_init(pTHX_ struct io_struct *io, SV*option, int amf_version){
         sv_2mortal((SV *)io->hv_trait);
     }
     else {
-        io->RV_HASH   = newHV();
-        io->RV_COUNT = 0;
-        HvSHAREKEYS_off( io->RV_HASH ); 
-        sv_2mortal((SV*)io->RV_HASH);
+        io->hv_object   = newHV();
+        io->rc_object = 0;
+        HvSHAREKEYS_off( io->hv_object ); 
+        sv_2mortal((SV*)io->hv_object);
     }
     io->buffer_step_inc = ibuf_step;
     io->ptr = (unsigned char *) SvPV_nolen(io->sv_buffer);
@@ -766,14 +763,14 @@ inline void amf0_format_one(pTHX_ struct io_struct *io, SV * one){
     if (SvROK(one)){
         SV * rv = (SV*) SvRV(one);
         /*  test has stored */
-        SV **OK = hv_fetch(io->RV_HASH, (char *)(&rv), sizeof (rv), 1);
+        SV **OK = hv_fetch(io->hv_object, (char *)(&rv), sizeof (rv), 1);
         if (SvOK(*OK)) {
             amf0_format_reference(aTHX_  io, *OK);
         }
         else {
             int type = SvTYPE(rv);
-            sv_setiv(*OK, io->RV_COUNT);
-            ++io->RV_COUNT;
+            sv_setiv(*OK, io->rc_object);
+            ++io->rc_object;
 
             if (sv_isobject(one)) {
 		if ( io->options & OPT_MAPPER ){
