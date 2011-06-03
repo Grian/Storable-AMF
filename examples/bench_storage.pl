@@ -15,9 +15,10 @@
 #===============================================================================
 
 use strict;
+use warnings;
 use ExtUtils::testlib;
 use Storable::AMF0 qw(freeze parse_serializator_option thaw);
-use Storable::AMF qw(freeze3 dclone);
+use Storable::AMF qw(freeze3 thaw3 dclone freeze0 thaw0);
 use Benchmark qw(cmpthese);
 use Data::Dumper;
 
@@ -30,15 +31,14 @@ my $opt_def  = parse_serializator_option( "-targ" );
 my $option   = parse_serializator_option( "+prefer_number" );
 
 my $storage = Storable::AMF0::amf_tmp_storage( $option );
-my $ff_obj   = freeze( $obj ); 
-my $ff_sobj   = freeze( $sobj ); 
-my $ff_bobj   = freeze( $bobj ); 
-#( $ff_obj , $ff_sobj ) = ( $ff_sobj,  $ff_obj  );
+my $ff_obj    = freeze0( $obj ); 
+my $ff_sobj   = freeze0( $sobj ); 
+my $ff_bobj   = freeze0( $bobj ); 
 
-print Dumper( thaw( $ff_obj),thaw($ff_sobj));
-
-printf "%d<=>%d\n", $opt_targ, $opt_def, "\n";
-
+my $ff_obj3    = freeze3( $obj ); 
+my $ff_sobj3   = freeze3( $sobj ); 
+my $ff_bobj3   = freeze3( $bobj ); 
+print "AMF0 benchmark\n";
 cmpthese( -1,{
         bobj_1   =>  sub { 
             my $s = thaw( $ff_bobj, $option);
@@ -71,16 +71,6 @@ cmpthese( -1,{
             $s = thaw( $ff_obj, $option);
                 
         },
-#        obj_0   =>  sub { 
-#            my $s = thaw( $ff_obj);
-#            $s = thaw( $ff_obj);
-#            $s = thaw( $ff_obj);
-#            $s = thaw( $ff_obj);
-#            $s = thaw( $ff_obj);
-#            $s = thaw( $ff_obj);
-#            $s = thaw( $ff_obj);
-#                
-#        },
         obj_st   => sub { 
             my $s = thaw( $ff_obj, $storage) ;
             $s = thaw( $ff_obj, $storage) ;
@@ -116,6 +106,73 @@ cmpthese( -1,{
         }
         );
 
+print "AMF3 benchmark\n";
+cmpthese( -1,{
+        bobj3_1   =>  sub { 
+            my $s = thaw3( $ff_bobj3, $option);
+            $s = thaw3( $ff_bobj3, $option);
+            $s = thaw3( $ff_bobj3, $option);
+            $s = thaw3( $ff_bobj3, $option);
+            $s = thaw3( $ff_bobj3, $option);
+            $s = thaw3( $ff_bobj3, $option);
+            $s = thaw3( $ff_bobj3, $option);
+                
+        },
+        bobj3_st   => sub { 
+            my $s = thaw3( $ff_bobj3, $storage) ;
+            $s = thaw3( $ff_bobj3, $storage) ;
+            $s = thaw3( $ff_bobj3, $storage) ;
+            $s = thaw3( $ff_bobj3, $storage) ;
+            $s = thaw3( $ff_bobj3, $storage) ;
+            $s = thaw3( $ff_bobj3, $storage) ;
+            $s = thaw3( $ff_bobj3, $storage) ;
+        },
+});
+cmpthese( -1,{
+        obj3_1   =>  sub { 
+            my $s = thaw3( $ff_obj3, $option);
+            $s = thaw3( $ff_obj3, $option);
+            $s = thaw3( $ff_obj3, $option);
+            $s = thaw3( $ff_obj3, $option);
+            $s = thaw3( $ff_obj3, $option);
+            $s = thaw3( $ff_obj3, $option);
+            $s = thaw3( $ff_obj3, $option);
+                
+        },
+        obj3_st   => sub { 
+            my $s = thaw3( $ff_obj3, $storage) ;
+            $s = thaw3( $ff_obj3, $storage) ;
+            $s = thaw3( $ff_obj3, $storage) ;
+            $s = thaw3( $ff_obj3, $storage) ;
+            $s = thaw3( $ff_obj3, $storage) ;
+            $s = thaw3( $ff_obj3, $storage) ;
+            $s = thaw3( $ff_obj3, $storage) ;
+        },
+});
+
+
+cmpthese( -1,{
+        sobj3_1   =>  sub { 
+            my $s = thaw3( $ff_sobj3, $option) ;
+            $s = thaw3( $ff_sobj3, $option) ;
+            $s = thaw3( $ff_sobj3, $option) ;
+            $s = thaw3( $ff_sobj3, $option) ;
+            $s = thaw3( $ff_sobj3, $option) ;
+            $s = thaw3( $ff_sobj3, $option) ;
+            $s = thaw3( $ff_sobj3, $option) ;
+        },
+        
+        sobj3_st   => sub { 
+            my $s = thaw3( $ff_sobj3, $storage) ;
+            $s = thaw3( $ff_sobj3, $storage) ;
+            $s = thaw3( $ff_sobj3, $storage) ;
+            $s = thaw3( $ff_sobj3, $storage) ;
+            $s = thaw3( $ff_sobj3, $storage) ;
+            $s = thaw3( $ff_sobj3, $storage) ;
+            $s = thaw3( $ff_sobj3, $storage) ;
+        },
+        }
+        );
 
 
 

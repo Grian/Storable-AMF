@@ -13,7 +13,7 @@ use Storable::AMF3;
 use Storable::AMF;
 use Scalar::Util qw(refaddr);
 @methods = @Storable::AMF::EXPORT_OK;
-$totals = ( @methods * 3 - 2 * 4 ) + 2 * 2  + 1 ;
+$totals = ( @methods * 3 - 2 * 4 ) + 2 * 2  + 1  -4  ;
 eval "use Test::More tests => $totals";
 
 for my $module (qw(Storable::AMF Storable::AMF0 Storable::AMF3)){

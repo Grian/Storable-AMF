@@ -17,6 +17,7 @@ our %EXPORT_TAGS = (
 		  parse_serializator_option
 		  parse_option
 		  freeze0 freeze3 thaw0 thaw3
+		  deparse_amf0 deparse_amf3
           )
     ]
 );

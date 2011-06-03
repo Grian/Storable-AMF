@@ -2484,6 +2484,7 @@ deparse_amf(SV *data, SV * sv_option = 0)
     PROTOTYPE: $;$
     ALIAS:
 	Storable::AMF::deparse_amf=1
+	Storable::AMF::deparse_amf0=1
     INIT:
         SV* retvalue;
 	struct io_struct io[1];
@@ -2494,6 +2495,9 @@ deparse_amf(SV *data, SV * sv_option = 0)
             io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
             
             retvalue = (SV*) (io->parse_one_object(aTHX_  io));
+            /* clean up storable unless need */
+            if ( io->reuse )
+                io_in_cleanup(aTHX_ io);
             retvalue = sv_2mortal(retvalue);
             sv_setsv(ERRSV, &PL_sv_undef);
             if (GIMME_V == G_ARRAY){
@@ -2535,15 +2539,21 @@ MODULE = Storable::AMF0		PACKAGE = Storable::AMF3
 
 void
 deparse_amf(SV *data, SV* sv_option = 0)
+    ALIAS: 
+        Storable::AMF::deparse_amf3 = 1
     PROTOTYPE: $;$
     INIT:
         SV* retvalue;
         struct io_struct io[1];
     PPCODE:
+	PERL_UNUSED_VAR(ix);
         if ( ! Sigsetjmp(io->target_error, 0)){
             io->subname = "Storable::AMF3::deparse_amf( data, option )";
             io_in_init(aTHX_  io, data, AMF3_VERSION, sv_option);
             retvalue = (SV*) (amf3_parse_one(aTHX_  io));
+            /* clean up storable unless need */
+            if ( io->reuse )
+                io_in_cleanup(aTHX_ io);
             sv_2mortal(retvalue);
             sv_setsv(ERRSV, &PL_sv_undef);
 
@@ -2570,6 +2580,9 @@ thaw(SV *data, SV *sv_option = 0)
             io->subname = "Storable::AMF3::thaw( data, option )";
             io_in_init(aTHX_  io, data, AMF3_VERSION, sv_option);
             retvalue = (SV*) (amf3_parse_one(aTHX_  io));
+            /* clean up storable unless need */
+            if ( io->reuse )
+                io_in_cleanup(aTHX_ io);
             sv_2mortal(retvalue);
             io_test_eof( aTHX_ io );
             sv_setsv(ERRSV, &PL_sv_undef);
