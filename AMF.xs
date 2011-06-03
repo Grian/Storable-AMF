@@ -523,18 +523,26 @@ inline void io_out_init(pTHX_ struct io_struct *io, SV*option, int amf_version){
         io->rc_trait  = 0;
         io->rc_object = 0;
 
+        HvSHAREKEYS_off( io->hv_object );
+        HvSHAREKEYS_off( io->hv_trait );
+        HvSHAREKEYS_off( io->hv_string );
+
         sv_2mortal((SV *)io->hv_string);
         sv_2mortal((SV *)io->hv_object);
         sv_2mortal((SV *)io->hv_trait);
+    }
+    else {
+        io->RV_HASH   = newHV();
+        io->RV_COUNT = 0;
+        HvSHAREKEYS_off( io->RV_HASH ); 
+        sv_2mortal((SV*)io->RV_HASH);
     }
     io->buffer_step_inc = ibuf_step;
     io->ptr = (unsigned char *) SvPV_nolen(io->sv_buffer);
     io->pos = io->ptr;
     io->end = (unsigned char *) SvEND(io->sv_buffer);
     io->status  = 'w';
-    io->RV_COUNT = 0;
-    io->RV_HASH   = newHV();
-    sv_2mortal((SV*)io->RV_HASH);
+    
 }
 
 inline SV * io_buffer(struct io_struct *io){
