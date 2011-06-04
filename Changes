@@ -383,4 +383,6 @@ Revision history for Perl extension Storable::AMF.
 
 0.99    2011-06-03
         - thaw0_sv for utilizing hashref
+        - small speed improvement (ecma_array)
+        - small fix of logic
 
