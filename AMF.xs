@@ -1231,10 +1231,12 @@ STATIC_INLINE SV * amf0_parse_object(pTHX_ struct io_struct * io){
     int len_next;
     char * key;
     SV * value;
-    int obj_pos;
+    int  obj_pos;
+    SV *RETVALUE;
 
     obj =  newHV();
-    av_push(io->arr_object, newRV_noinc((SV *) obj));
+    RETVALUE = newRV_noinc( (SV *) obj );
+    av_push(io->arr_object, RETVALUE);
     obj_pos = av_len(io->arr_object);
     while(1){
         len_next = io_read_u16(io);
@@ -1244,7 +1246,6 @@ STATIC_INLINE SV * amf0_parse_object(pTHX_ struct io_struct * io){
             if ((object_end == MARKER0_OBJECT_END))
             {
                 if (io->options & OPT_STRICT){
-                    SV* RETVALUE = *av_fetch(io->arr_object, obj_pos, 0);
                     if (SvREFCNT(RETVALUE) > 1)
                         io_register_error(io, ERR_RECURRENT_OBJECT);
                     ;
@@ -1252,7 +1253,8 @@ STATIC_INLINE SV * amf0_parse_object(pTHX_ struct io_struct * io){
                     return RETVALUE;
                 }
                 else {
-                    return (SV*) newRV_inc((SV*)obj);
+                    SvREFCNT_inc_simple_void_NN(RETVALUE);
+                    return RETVALUE;
                 }
             }
             else {
