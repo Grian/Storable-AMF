@@ -2591,11 +2591,8 @@ amf_tmp_storage(SV *option = 0)
     INIT:
         SV * retvalue;
     PPCODE:
-        retvalue = get_tmp_storage(aTHX, option);
+        retvalue = get_tmp_storage(aTHX_ option);
         XPUSHs(retvalue);
-
-
-
 
 void
 thaw(SV *data, SV *sv_option = 0)
