@@ -386,3 +386,7 @@ Revision history for Perl extension Storable::AMF.
         - small speed improvement (ecma_array)
         - small fix of logic
 
+1.00    2011-06-10
+        - speed improvement
+        - major perl version fixes ( compile for 5.10-5.14 )
+
