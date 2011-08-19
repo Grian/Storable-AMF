@@ -3,7 +3,7 @@ use strict;
 use warnings;
 BEGIN{
 	our $VERSION;
-	$VERSION='1.00' unless $INC{'Storable/AMF0.pm'};
+	$VERSION='1.01' unless $INC{'Storable/AMF0.pm'};
 }
 use Storable::AMF0; # install and create all methods
 use Exporter 'import';
@@ -203,7 +203,7 @@ Speed, simplicity and agile.
 At current moment and with restriction of AMF0/AMF3 format referrences to scalar are not serialized,
 and can't/ may not serialize tied variables.
 And dualvars (See Scalar::Util) are serialized as string value.
-Freezing CODEREF, IO, Regexp, REF, GLOB, SCALAR referenses restricted.
+Freezing CODEREF, IO, Regexp, GLOB referenses are restricted.
 
 
 =head1 SEE ALSO

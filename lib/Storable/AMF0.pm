@@ -2,7 +2,7 @@ package Storable::AMF0;
 use strict;
 use warnings;
 use Fcntl qw(:flock);
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 use subs qw(freeze thaw);
 use Scalar::Util qw(refaddr reftype);    # for ref_circled
 use Exporter 'import';
@@ -297,16 +297,11 @@ And some cases faster then Storable( for me always)
 
 =cut
 
-=head1 NOTICE
-
-  Storable::AMF0 is currently is at development stage. 
-
-=cut
-
 =head1 LIMITATION
 
-At current moment and with restriction of AMF0/AMF3 format referrences to scalar are not serialized,
-and can't/ may not serialize tied variables.
+At current moment and with restriction of AMF0/AMF3 format 
+referrences to function, filehandles are not serialized,
+and can't/may not serialize tied variables.
 
 =head1 FEATURES
 

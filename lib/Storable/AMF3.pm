@@ -7,7 +7,7 @@ use Exporter 'import';
 use Carp qw(croak);
 BEGIN{
 	our $VERSION;
-	$VERSION='1.00' unless $INC{'Storable/AMF0.pm'};
+	$VERSION='1.01' unless $INC{'Storable/AMF0.pm'};
 };
 use Storable::AMF0 ();
 
@@ -178,11 +178,6 @@ And some cases faster then Storable( for me always)
 
 =back
 
-
-=head1 LIMITATION
-
-At current moment and with restriction of AMF0/AMF3 format referrences to scalar are not serialized,
-and can't/ may not serialize tied variables.
 
 =head1 SEE ALSO
 
