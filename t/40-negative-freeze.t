@@ -1,18 +1,24 @@
 use ExtUtils::testlib;
 use strict;
 use warnings;
-use Test::More tests=>60; #'no_plan';
+use Test::More tests=>64; #'no_plan';
 use Storable::AMF0 qw(freeze thaw );
 use Data::Dumper;
 
+sub dehex{
+	unpack "H*", $_[0];
+}
 sub my_test(){
+	local $Test::Builder::Level = $Test::Builder::Level + 1;
     $@ = undef;
-    ok(! defined scalar Storable::AMF3::freeze($_), ref $_);
+    ok(! defined scalar Storable::AMF3::freeze($_), ref $_) ;
+#	! defined  Storable::AMF3::freeze($_) or warn Dumper( dehex (Storable::AMF3::freeze($_)));
     ok($@, "has error for3 ". ref $_);
     ok(! defined scalar Storable::AMF0::freeze($_), ref $_);
     ok($@, "has error for0 ". ref $_);
 };
 sub my_ok(){
+	local $Test::Builder::Level = $Test::Builder::Level + 1;
     ok( defined scalar Storable::AMF0::freeze($_), $@);
     is_deeply(Storable::AMF0::thaw(Storable::AMF0::freeze $_), $_, $@);
 	TODO: {
@@ -43,5 +49,7 @@ my_test for bless qr/\w+/, 'a';
 my_test for *STDERR{IO};
 my_test for bless *STDERR{IO}, 'a';
 
+my_test for \*STDERR;
+# my_test for *STDERR;
 
 

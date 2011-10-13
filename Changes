@@ -393,3 +393,6 @@ Revision history for Perl extension Storable::AMF.
 1.01    2011-08-19
         - remove development notice
         - some fix in documentaion
+
+1.02    2011-10-13
+        - skip_bad_option (512) for (saving subs as undefs )

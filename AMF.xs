@@ -96,6 +96,7 @@
 #define OPT_JSON_BOOLEAN  64
 #define OPT_MAPPER        128
 #define OPT_TARG          256
+#define OPT_SKIP_BAD      512
 
 #define EXPERIMENT1
 
@@ -880,7 +881,11 @@ inline void amf0_format_one(pTHX_ struct io_struct *io, SV * one){
 		}
 		else {		    
                     /* may be i has to format as undef */
-                    io_register_error(io, ERR_BAD_OBJECT);
+		    if ( io->options & OPT_SKIP_BAD ){
+			io_write_marker( aTHX_ io, MARKER0_UNDEFINED );
+		    }
+		    else 
+			io_register_error(io, ERR_BAD_OBJECT);
                 }
             }
             else if (SvTYPE(rv) == SVt_PVAV) 
@@ -893,7 +898,10 @@ inline void amf0_format_one(pTHX_ struct io_struct *io, SV * one){
                 amf0_format_scalar_ref(aTHX_  io, (SV*) rv);
             }
             else {
-                io_register_error(io, ERR_BAD_OBJECT);
+		if ( io->options & OPT_SKIP_BAD ) 
+		    io_write_marker( aTHX_ io, MARKER0_UNDEFINED );
+		else
+		    io_register_error(io, ERR_BAD_OBJECT);
             }
         }
     }
@@ -913,8 +921,15 @@ inline void amf0_format_one(pTHX_ struct io_struct *io, SV * one){
 		if (SvPOK(one)){
 		    amf0_format_string(aTHX_  io, one);
 		}
-		else {
+		else if ( SvNIOK(one) ){
 		    amf0_format_number(aTHX_  io, one);
+		}
+		else {
+		    if (io->options & OPT_SKIP_BAD ){
+			io_write_marker( aTHX_ io, MARKER0_UNDEFINED );
+		    }
+		    else 
+			io_register_error( aTHX_ io, ERR_BAD_OBJECT);
 		}
         }
         else {
@@ -2238,7 +2253,12 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
 		amf3_format_reference(aTHX_  io, *OK);
 	    }
             else {
-                io_register_error(io, ERR_BAD_OBJECT);
+		if ( io->options & OPT_SKIP_BAD ){
+		    io_write_marker( aTHX_ io, MARKER3_UNDEF );
+		}
+		else {
+		    io_register_error(io, ERR_BAD_OBJECT);
+		}
             }
         }
         else {
@@ -2285,7 +2305,10 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
 		amf3_format_date(aTHX_ io, rv );
 	    }
             else {
-                io_register_error(io, ERR_BAD_OBJECT);
+		if ( io->options & OPT_SKIP_BAD )
+		    io_write_marker( aTHX_ io, MARKER3_UNDEF );
+		else 
+		    io_register_error(io, ERR_BAD_OBJECT);
             }
         }
     }
@@ -2317,7 +2340,10 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
                 amf3_format_double(aTHX_  io, one);
             }
 	    else {
-		io_register_error(io, ERR_BAD_OBJECT );
+		if ( io->options & OPT_SKIP_BAD )
+		    io_write_marker( aTHX_ io, MARKER3_UNDEF );
+		else 
+		    io_register_error(io, ERR_BAD_OBJECT );
 	    }
         }
         else {
