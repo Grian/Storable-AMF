@@ -393,3 +393,7 @@ Revision history for Perl extension Storable::AMF.
 1.01    2011-08-19
         - remove development notice
         - some fix in documentaion
+
+1.02    2014-06-24
+        - fixed test stability over perl  above 5.19.1
+        - remove gcc warnings

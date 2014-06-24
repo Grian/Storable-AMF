@@ -35,7 +35,7 @@ ok( is_amf_string (  $a ="4"  , $nop ),     'str var not changed');
 $a = 1;
 $b = "$a";
 $var = 'Int';
-ok(   is_amf_string($a)			 , "$var converted  is   a string"  );
+ok(    is_amf_string($a)			 , "$var converted  is   a string"  );
 ok( !  is_amf_string(0+$a)		 , "$var 0+converted     is double" );
 ok( !  is_amf_string(0.0+$a,$nop), "$var 0.0+converted   is double" );
 ok( !  is_amf_string($a, $nop)   , "$var converted again is double" );
@@ -45,7 +45,7 @@ ok( !  is_amf_string($a, $nop)   , "$var converted again is double" );
 $a = 1;
 $b = "".$a;
 $var = "Int++";
-ok(   is_amf_string($a)			 , "$var converted  is   a string"  );
+ok(    is_amf_string($a)			 , "$var converted  is   a string"  );
 ok( !  is_amf_string(0+$a)		 , "$var 0+converted     is double" );
 ok( !  is_amf_string(0.0+$a,$nop), "$var 0.0+converted   is double" );
 ok( !  is_amf_string($a, $nop)   , "$var converted again is double" );
@@ -55,7 +55,8 @@ $a = 1.0;
 $b = "$a";
 $var = "Double";
 
-ok(   is_amf_string($a)			 , "$var converted  is   a string"  );
+my %string_number=(0=>1,2=>1);
+ok(    $string_number{ byte_amf_string($a)} , "$var converted  is   a string"  );
 ok( !  is_amf_string(0+$a)		 , "$var 0+converted     is double" );
 ok( !  is_amf_string(0.0+$a,$nop), "$var 0.0+converted   is double" );
 ok( !  is_amf_string($a, $nop)   , "$var converted again is double" );
@@ -65,7 +66,7 @@ ok( !  is_amf_string($a, $nop)   , "$var converted again is double" );
 $a = 1.0;
 $b = "".$a;
 $var = "Double++";
-ok(    is_amf_string($a)		 , "$var converted  is   a string"  );
+ok(    $string_number{ byte_amf_string($a)}, "$var converted  is   a string"  );
 ok( !  is_amf_string(0+$a)		 , "$var 0+converted     is double" );
 ok( !  is_amf_string(0.0+$a,$nop), "$var 0.0+converted   is double" );
 ok( !  is_amf_string($a, $nop)   , "$var converted again is double" );
@@ -103,4 +104,7 @@ ok(    is_amf_string(''.$a, )   ,  "$var ''.converted       is str" );
 
 sub is_amf_string{
 	ord( freeze( $_[0], $_[1]||0 )) == 2;
+}
+sub byte_amf_string{
+	ord( freeze( $_[0], $_[1]||0 ));
 }

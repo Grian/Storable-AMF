@@ -326,14 +326,13 @@ inline void io_register_error_and_free(pTHX_ struct io_struct *io, int errtype, 
 inline SV*  get_tmp_storage(pTHX_ SV* option){
     struct io_struct * io;
     SV *sv ;
-    AV *tmp;
     Newxz( io, 1, struct io_struct );
     sv = sv_newmortal();
     sv_setref_iv( sv, "Storable::AMF0::TemporaryStorage", PTR2IV( io ) );
 
-    tmp = io->arr_trait  = newAV();
-    tmp = io->arr_string = newAV();
-    tmp = io->arr_object = newAV();
+    io->arr_trait  = newAV();
+    io->arr_string = newAV();
+    io->arr_object = newAV();
 
     io->hv_object        = newHV();
     HvSHAREKEYS_off( io->hv_object );
@@ -969,21 +968,14 @@ inline void amf0_format_strict_array(pTHX_ struct io_struct *io, AV * one){
     }
 }
 inline void amf0_format_object(pTHX_ struct io_struct *io, HV * one){
-    STRLEN key_len;
-    HV *hv;
-    HE *he;
+    I32 key_len;
     SV * value;
-    char * key_str;
-    hv = one;
-    if (1) {
-        hv_iterinit(hv);
-        while( (he =  hv_iternext(hv))){
-            key_str = HePV(he, key_len);
-            value   = HeVAL(he);
-            io_write_u16(aTHX_  io, key_len);
-            io_write_bytes(aTHX_  io, key_str, key_len);
-            amf0_format_one(aTHX_  io, value);
-        }
+    char *key_str;
+    hv_iterinit(one);
+    while(( value = hv_iternextsv(one, &key_str, &key_len))){
+	io_write_u16(aTHX_  io, key_len);
+	io_write_bytes(aTHX_  io, key_str, key_len);
+	amf0_format_one(aTHX_  io, value);
     }
     io_write_u16(aTHX_  io, 0);
     io_write_marker(aTHX_  io, MARKER0_OBJECT_END);
@@ -1231,13 +1223,11 @@ STATIC_INLINE SV * amf0_parse_object(pTHX_ struct io_struct * io){
     int len_next;
     char * key;
     SV * value;
-    int  obj_pos;
     SV *RETVALUE;
 
     obj =  newHV();
     RETVALUE = newRV_noinc( (SV *) obj );
     av_push(io->arr_object, RETVALUE);
-    obj_pos = av_len(io->arr_object);
     while(1){
         len_next = io_read_u16(io);
         if (len_next == 0) {
@@ -1469,9 +1459,8 @@ STATIC_INLINE SV* amf0_parse_ecma_array(pTHX_ struct io_struct *io){
 STATIC_INLINE SV* amf0_parse_date(pTHX_ struct io_struct *io){
     SV* RETVALUE;
     double time;
-    int tz;
     time = io_read_double(io);
-    tz = io_read_s16(io);
+    (void)io_read_s16(io);
     if ( io->options & OPT_MILLSEC_DATE )
 	RETVALUE = newSVnv(time);
     else 
@@ -1778,8 +1767,6 @@ inline SV * amf3_parse_array(pTHX_ struct io_struct *io){
         int old_vlen;
         SV * item_value;
         UV item_index;
-        int obj_pos;
-
 
         AV * array;
         str_len = amf3_read_integer(io);
@@ -1795,7 +1782,6 @@ inline SV * amf3_parse_array(pTHX_ struct io_struct *io){
         RETVALUE = newRV_noinc(item);
 
         amf3_store_object_rv(aTHX_  io, RETVALUE);
-        obj_pos = av_len(io->arr_object); 
 
         recover = FALSE;
         if (str_len !=1){
@@ -2377,7 +2363,6 @@ inline SV * amf3_parse_one(pTHX_ struct io_struct * io){
     }
 }
 inline SV* amf0_parse_one_tmp( pTHX_ struct io_struct *io, SV * reuse ){
-    char marker;
     SV * RETVALUE;
     HV * obj;
 
@@ -2387,7 +2372,6 @@ inline SV* amf0_parse_one_tmp( pTHX_ struct io_struct *io, SV * reuse ){
     int obj_pos;
 
     io_require( io, 1 );
-    marker = *(io->pos);
     RETVALUE = reuse;
 
     if ( MARKER0_OBJECT != MARKER0_OBJECT || ! SvROK( reuse ) ){
@@ -2626,7 +2610,7 @@ deparse_amf(SV *data, SV * sv_option = 0)
     PROTOTYPE: $;$
     ALIAS:
 	Storable::AMF::deparse_amf=1
-	Storable::AMF::deparse_amf0=1
+	Storable::AMF::deparse_amf0=2
     INIT:
         SV* retvalue;
 	struct io_struct io[1];

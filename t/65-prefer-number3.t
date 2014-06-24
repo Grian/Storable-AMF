@@ -35,7 +35,7 @@ ok( is_amf_string (  $a ="4"  , $nop ),     'str var not changed');
 $a = 1;
 $b = "$a";
 $var = 'Int';
-ok(   is_amf_string($a)			 , "$var converted  is   a string"  );
+ok(    is_amf_string($a)			 , "$var converted  is   a string"  );
 ok( !  is_amf_string(0+$a)		 , "$var 0+converted     is double" );
 ok( !  is_amf_string(0.0+$a,$nop), "$var 0.0+converted   is double" );
 ok( !  is_amf_string($a, $nop)   , "$var converted again is double" );
@@ -45,7 +45,7 @@ ok( !  is_amf_string($a, $nop)   , "$var converted again is double" );
 $a = 1;
 $b = "".$a;
 $var = "Int++";
-ok(   is_amf_string($a)			 , "$var converted  is   a string"  );
+ok(    is_amf_string($a)			 , "$var converted  is   a string"  );
 ok( !  is_amf_string(0+$a)		 , "$var 0+converted     is double" );
 ok( !  is_amf_string(0.0+$a,$nop), "$var 0.0+converted   is double" );
 ok( !  is_amf_string($a, $nop)   , "$var converted again is double" );
@@ -55,7 +55,7 @@ $a = 1.0;
 $b = "$a";
 $var = "Double";
 
-ok(   is_amf_string($a)			 , "$var converted  is   a string"  );
+ok(    is_double_string($a)		 , "$var converted  is   a string"  );
 ok( !  is_amf_string(0+$a)		 , "$var 0+converted     is double" );
 ok( !  is_amf_string(0.0+$a,$nop), "$var 0.0+converted   is double" );
 ok( !  is_amf_string($a, $nop)   , "$var converted again is double" );
@@ -65,7 +65,7 @@ ok( !  is_amf_string($a, $nop)   , "$var converted again is double" );
 $a = 1.0;
 $b = "".$a;
 $var = "Double++";
-ok(    is_amf_string($a)		 , "$var converted  is   a string"  );
+ok(    is_double_string($a)		 , "$var converted  is   a string"  );
 ok( !  is_amf_string(0+$a)		 , "$var 0+converted     is double" );
 ok( !  is_amf_string(0.0+$a,$nop), "$var 0.0+converted   is double" );
 ok( !  is_amf_string($a, $nop)   , "$var converted again is double" );
@@ -100,7 +100,14 @@ ok(    is_amf_string(''.$a, $nop), "$var ''.converted again is str" );
 ok(    is_amf_string(''.$a, )   ,  "$var ''.converted       is str" );
 
 
+is_double_string( ('a'));
+is_double_string( (1234));
+is_double_string( (1234.0));
 
+sub is_double_string{
+	# print STDERR Dumper(	ord( freeze( $_[0], $_[1]||0 )));
+	return scalar grep $_ == 6|| $_==5, ord( freeze( $_[0], $_[1]||0 ));
+}
 sub is_amf_string{
 	ord( freeze( $_[0], $_[1]||0 )) == 6;
 }
