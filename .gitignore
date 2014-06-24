@@ -9,3 +9,5 @@ MYMETA.yml
 _build
 *.tar.gz
 [a-z].pl
+AMF.o
+MYMETA.json
