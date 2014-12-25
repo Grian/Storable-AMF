@@ -22,9 +22,9 @@
 
 #ifndef inline /* don't like borgs definitions */ /* inline is keyword for STDC compiler  */
 #   if defined(__GNUC__) || defined(__cplusplus__) || (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L))
-#      if defined(__APPLE__)
-#           define inline 
-#      endif
+#   	if defined(__APPLE__)
+#	    define inline 
+#	endif
 #   else
 #	if defined(WIN32) && defined(_MSV) /* Microsoft Compiler */
 #	    define inline _inline
