@@ -43,20 +43,20 @@ our %MyModule = (
     OPTIMIZE  => "-O3 -pipe -fomit-frame-pointer ",
 
 );
-delete $MyModule{OPTIMIZE}
-  if ( $Config{osname} =~ /solaris/
-    or $Config{cc} eq 'cl' );
+if ( $Config{osname} =~ /solaris/ or $Config{cc} eq 'cl' ){
+    delete $MyModule{OPTIMIZE}
+};
 if ( $Config{cc} eq 'gcc' ||  $Config{gccversion}) {
-	if ($Config{osname}!~m/Win32/i ){
-		for (   $MyModule{CCFLAGS} ){
-			$_ .= ' -Wunused'; 
-			$_ .= ' -Wuninitialized'; 
-			$_ .= ' -Wall'; 
-		#$_  .= ' -Wunreachable-code';
-		#$_  .= ' -Wunsafe-loop-optimizations';
-		};
-	}
-      #$MyModule{CCFLAGS} = '-Wunused-variable -Wunused-label -Wunused-function -Wuninitialized -Wunused-value'
+    if (0 && $Config{osname}!~m/Win32/i ){
+        for ($MyModule{CCFLAGS} ){
+                $_ .= ' -Wunused'; 
+                $_ .= ' -Wuninitialized'; 
+                $_ .= ' -Wall'; 
+        #$_  .= ' -Wunreachable-code';
+        #$_  .= ' -Wunsafe-loop-optimizations';
+        };
+    }
+    #$MyModule{CCFLAGS} = '-Wunused-variable -Wunused-label -Wunused-function -Wuninitialized -Wunused-value'
 }
 
 WriteMakefile(%MyModule);

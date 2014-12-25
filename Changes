@@ -398,5 +398,7 @@ Revision history for Perl extension Storable::AMF.
         - fixed test stability over perl  above 5.19.1
         - remove gcc warnings
 
-1.03    2011-10-13
+1.03    2014-12-25
         - skip_bad_option (512) for (saving subs as undefs )
+        - Fix Ubuntu compiling (CCFLAG is problem)
+        - Apple compiling issue (Thanks to Alberto)
