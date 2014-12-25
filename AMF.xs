@@ -925,10 +925,10 @@ inline void amf0_format_one(pTHX_ struct io_struct *io, SV * one){
 		}
 		else {
 		    if (io->options & OPT_SKIP_BAD ){
-			io_write_marker( aTHX_ io, MARKER0_UNDEFINED );
+			io_write_marker(aTHX_ io, MARKER0_UNDEFINED );
 		    }
 		    else 
-			io_register_error( aTHX_ io, ERR_BAD_OBJECT);
+			io_register_error(io, ERR_BAD_OBJECT);
 		}
         }
         else {
