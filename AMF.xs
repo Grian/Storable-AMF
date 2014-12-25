@@ -1251,7 +1251,7 @@ STATIC_INLINE SV * amf0_parse_object(pTHX_ struct io_struct * io){
         if (len_next == 0) {
             char object_end;
             object_end= io_read_marker(io);
-            if ((object_end == MARKER0_OBJECT_END))
+            if ( MARKER0_OBJECT_END == object_end )
             {
                 if (io->options & OPT_STRICT){
                     if (SvREFCNT(RETVALUE) > 1)
@@ -1380,7 +1380,7 @@ STATIC_INLINE SV* amf0_parse_ecma_array(pTHX_ struct io_struct *io){
     fprintf( stderr, "Start parse array %d\n", array_len);
     fprintf( stderr, "position %d\n", io_position(io));
     #endif
-    if (0 <= array_len){
+    if (1){
         bool ok;
         UV index;
         key_len = io_read_u16(io);
@@ -1532,7 +1532,7 @@ inline SV *parse_scalar_ref(pTHX_ struct io_struct *io){
             if (len_next == 0) {
                 char object_end;
                 object_end= io_read_marker(io);
-                if ((object_end == MARKER0_OBJECT_END))
+                if (MARKER0_OBJECT_END == object_end)
                 {
                     SV* RETVALUE = *av_fetch(io->arr_object, obj_pos, 0);
                     if (!value)
@@ -2255,7 +2255,7 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
             (void) hv_store(io->hv_object, (char *) (&rv), sizeof (rv), newSViv(io->rc_object), 0);
             ++io->rc_object;
 
-	    if ( io->options && OPT_MAPPER ){
+	    if ( io->options & OPT_MAPPER ){
 		if ( sv_isobject( one ) ){
 		    
 		    GV *to_amf = gv_fetchmethod_autoload (SvSTASH (rv), "TO_AMF", 0);
@@ -2422,7 +2422,7 @@ inline SV* amf0_parse_one_tmp( pTHX_ struct io_struct *io, SV * reuse ){
         if (len_next == 0) {
             char object_end;
             object_end= io_read_marker(io);
-            if ((object_end == MARKER0_OBJECT_END))
+            if (MARKER0_OBJECT_END == object_end)
             {
                 if (io->options & OPT_STRICT){
                     SV* RETVALUE = *av_fetch(io->arr_object, obj_pos, 0);
