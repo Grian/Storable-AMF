@@ -815,15 +815,26 @@ inline void amf0_format_scalar_ref(pTHX_ struct io_struct * io, SV *ref){
 }
 
 inline void amf0_format_one(pTHX_ struct io_struct *io, SV * one){
+    SV *rv = 0;
+    bool is_perl_bool = 0;
     if (SvROK(one)){
+        rv = (SV*) SvRV(one);
 	if ( sv_isobject( one )){
-	    bool is_perl_bool = 0;
-	    if ( sv_isa(one, "boolean" )){
-		is_perl_bool  = 1;
-	    }
-	    if ( sv_isa(one, "JSON::XS::Boolean")){
-		is_perl_bool =  1;
-	    }
+            HV* stash = SvSTASH(rv);
+            char *class_name = HvNAME(stash);
+            if ( class_name[0] == 'J' ){
+                if ( sv_isa(one, "JSON::PP::Boolean")){
+                    is_perl_bool =  1;
+                }
+                else if ( sv_isa(one, "JSON::XS::Boolean") ){
+                    is_perl_bool =  1;
+                }
+            }
+            else if ( class_name[0] == 'b' ){
+                if ( sv_isa(one, "boolean" )){
+                    is_perl_bool  = 1;
+                }
+            }
 	    if ( is_perl_bool ){
 		io_write_marker(aTHX_ io, MARKER0_BOOLEAN );
 		/*  TODO SvTRUE can call die or something like */
@@ -833,8 +844,7 @@ inline void amf0_format_one(pTHX_ struct io_struct *io, SV * one){
 	}
     }
 
-    if (SvROK(one)){
-        SV * rv = (SV*) SvRV(one);
+    if (rv){
         /*  test has stored */
         SV **OK = hv_fetch(io->hv_object, (char *)(&rv), sizeof (rv), 1);
         if (SvOK(*OK)) {
@@ -2208,15 +2218,26 @@ inline void amf3_format_object(pTHX_ struct io_struct *io, SV * rone){
 }
 
 inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
+    SV *rv=0;
+    bool is_perl_bool = 0;
     if (SvROK(one)){
+        rv = (SV*) SvRV(one);
 	if ( sv_isobject( one )){
-	    bool is_perl_bool = 0;
-	    if ( sv_isa(one, "boolean" )){
-		is_perl_bool  = 1;
-	    }
-	    if ( sv_isa(one, "JSON::XS::Boolean")){
-		is_perl_bool =  1;
-	    }
+            HV* stash = SvSTASH(rv);
+            char *class_name = HvNAME(stash);
+            if ( class_name[0] == 'J' ){
+                if ( sv_isa(one, "JSON::PP::Boolean")){
+                    is_perl_bool =  1;
+                }
+                else if ( sv_isa(one, "JSON::XS::Boolean") ){
+                    is_perl_bool =  1;
+                }
+            }
+            else if ( class_name[0] == 'b' ){
+                if ( sv_isa(one, "boolean" )){
+                    is_perl_bool  = 1;
+                }
+            }
 	    if ( is_perl_bool ){
 		io_write_marker(aTHX_ io, (SvTRUE( SvRV( one )) ? MARKER3_TRUE : MARKER3_FALSE ) );
 		return ;
@@ -2224,8 +2245,7 @@ inline void amf3_format_one(pTHX_ struct io_struct *io, SV * one){
 	}
     }
 
-    if (SvROK(one)){
-        SV * rv = (SV*) SvRV(one);
+    if (rv){
         /* test has stored */
         SV **OK = hv_fetch(io->hv_object, (char *)(&rv), sizeof (rv), 1);
         if (SvOK(*OK)) {

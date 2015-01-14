@@ -402,3 +402,6 @@ Revision history for Perl extension Storable::AMF.
         - skip_bad_option (512) for (saving subs as undefs )
         - Fix Ubuntu compiling (CCFLAG is problem)
         - Apple compiling issue (Thanks to Alberto)
+
+1.03    2015-01-14
+        - JSON::XS, Types::Serializer fixes
