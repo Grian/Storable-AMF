@@ -33,6 +33,10 @@ sub new{
 	}
 	return $option_int;
 }
+
+1;
+__END__
+
 =head1 SYNOPSYS 
 
   use Storable::AMF::Mapper;
@@ -50,15 +54,6 @@ sub new{
 
   my $obj  = thaw( $amf0 ); # $obj = { Zeta=> , some_key_to_be_added => "Key Value" }
 
-
-=cut 
-
 =head1 NOTICE
-  
+
   This Mapper is experimental feature of Storable::AMF distro. So may change in future ...
-
-=cut 
-
-
-
-1;

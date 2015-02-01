@@ -137,7 +137,6 @@ sub ref_lost_memory($) {
 
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
@@ -200,8 +199,6 @@ Storable::AMF0 - serializing/deserializing AMF0 data
   $obj = thaw( $amf, $options );
   $amf = freeze( $obj, $options );
 
-=cut
-
 =head1 DESCRIPTION
 
 This module is (de)serializer for Adobe's AMF0/AMF3 (Action Message Format ver 0-3).
@@ -209,16 +206,11 @@ This is only module and it recognize only AMF0 data.
 Almost all function implemented in C for speed. 
 And some cases faster then Storable( for me always)
 
-=cut
-
 =head1 EXPORT
-  
+
   None by default.
 
-=cut
-
 =head1 FUNCTIONS
-=cut
 
 =over
 
@@ -261,10 +253,9 @@ And some cases faster then Storable( for me always)
   Return one object and number of bytes readed
   if scalar context return object
 
-=item parse_option( $option_string )
-=item parse_serializator_option( $option_string )
+=item parse_serializator_option( $option_string ) / parse_option( $option_string )
   --- generate option scalar from string usefull for some options of thaw/freeze/deparse_amf 
-	
+
 
 =back
 
@@ -294,8 +285,6 @@ And some cases faster then Storable( for me always)
 =item utf8_encode
 
 =back
-
-=cut
 
 =head1 LIMITATION
 
@@ -329,4 +318,3 @@ Copyright (C) 2011 by A. G. Grishaev
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.8 or,
 at your option, any later version of Perl 5 you may have available.
-=cut
