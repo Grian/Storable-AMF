@@ -109,7 +109,6 @@ Storable::AMF - serializing/deserializing AMF0/AMF3 data
   $bytea = Storable::AMF3::freeze( ... );
 
   ...
-=cut
 
 =head1 DESCRIPTION
 
@@ -117,22 +116,17 @@ This module is (de)serializer for Adobe's AMF0/AMF3 (Action Message Format ver 0
 To deserialize AMF3 objects you can export function from Storable::AMF3 package
 Almost all function implemented in XS/C for speed, except file operation. 
 
-=cut
 =head1 MOTIVATION
 
 Speed, simplicity and agile. 
 
-=cut
 =head1 BENCHMARKS
 
 	About 50-60 times faster than Data::AMF pure perl module. (2009)
 	About 40% faster than Storable in big objects.        (2009)
 	About 6 times faster than Storable for small object    (2009)
 
-=cut
-
 =head1 FUNCTIONS
-=cut
 
 =over
 
@@ -155,7 +149,7 @@ Speed, simplicity and agile.
 
 =item $perl_time = perl_date( $date_member )
 	Converts value from AMF date to perl timestampr, can croak.
-	
+
 =item store $obj, $file
   --- Store serialized AMF0 data to file
 
@@ -184,19 +178,15 @@ Speed, simplicity and agile.
   --- test if object contain lost memory fragments inside.
   (Example do { my $a = []; @$a=$a; $a})
 
-=item parse_serializator_option
-=item parse_option
+=item parse_serializator_option / parse_option
   generate option scalar for freeze/thaw/deparse_amf
   See L<Storable::AMF0> for complete list of options
 
 =back
 
 =head1 EXPORT
-  
+
   None by default.
-
-=cut
-
 
 =head1 LIMITATION
 
@@ -204,7 +194,6 @@ At current moment and with restriction of AMF0/AMF3 format referrences to scalar
 and can't/ may not serialize tied variables.
 And dualvars (See Scalar::Util) are serialized as string value.
 Freezing CODEREF, IO, Regexp, GLOB referenses are restricted.
-
 
 =head1 SEE ALSO
 
@@ -226,4 +215,3 @@ Copyright (C) 2011 by A. G. Grishaev
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.8 or,
 at your option, any later version of Perl 5 you may have available.
-=cut
