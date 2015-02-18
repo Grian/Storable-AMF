@@ -54,9 +54,18 @@ sub store($$) {
         croak "Bad object";
     }
     else  {
-	open my $fh, ">:raw", $file or croak "Can't open file \"$file\" for write.";
-        flock $fh, LOCK_EX if $lock;
+        my $fh;
+        if ($lock){
+            open $fh, ">>:raw", $file or croak "Can't open file \"$file\" for write.";
+            flock $fh, LOCK_EX if $lock;
+            truncate $fh, 0;
+            seek $fh,0,0;
+        }
+        else {
+            open $fh, ">:raw", $file or croak "Can't open file \"$file\" for write.";
+        }
         print $fh $$freeze if defined $$freeze;
+        close $fh;
     };
 }
 

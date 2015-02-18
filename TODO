@@ -3,7 +3,7 @@
     - Improve testleak for strings
     - add documentation for boolean, basic externalized objects, boolean_json
     - memleak for amf_tmp_storage
-    - optimize amf?_format_one, more boolean
+    - optimize amf[03]_format_one, more boolean
     - remove C90 warnings
-    - reformat Changes
+    - test for lockstore for AMF0/AMF3
 
