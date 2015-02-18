@@ -2594,6 +2594,10 @@ FREE_INLINE void ref_clear(pTHX_ HV * go_once, SV *sv){
  */
 
 /* Temporary Intenale Storage */
+#define check_bounds(low,high, mess) \
+    if (items < low || items > high )\
+        croak_xs_usage( cv, mess );
+
 MODULE = Storable::AMF0 PACKAGE = Storable::AMF0::TemporaryStorage
 
 void
@@ -2624,23 +2628,38 @@ dclone(SV * data)
         XPUSHs(retvalue);
 
 void 
-amf_tmp_storage(SV *option = 0)
+amf_tmp_storage(...)
     INIT:
         SV * retvalue;
+        SV * option;
+    PROTOTYPE: ;$
     PPCODE:
+        if (items<0 || items > 1)
+            croak_xs_usage(cv, "option=0");
+        if (items<1)
+            option = 0;
+        else 
+            option = ST(0);
+
         retvalue = get_tmp_storage(aTHX_ option);
         XPUSHs(retvalue);
 
 void
-thaw(SV *data, SV *sv_option = 0)
+thaw(SV *data, ... )
     ALIAS:
 	Storable::AMF::thaw=1
 	Storable::AMF::thaw0=2
     PROTOTYPE: $;$
     INIT:
         SV* retvalue;
+        SV* sv_option;
         struct io_struct io[1];
     PPCODE:
+        check_bounds(1,2, "sv_option=0");
+        if ( items == 1 )
+            sv_option = 0;
+        else 
+            sv_option = ST(1);
 	PERL_UNUSED_VAR(ix);
         if ( ! Sigsetjmp(io->target_error, 0) ){
             io->subname = "Storable::AMF0::thaw( data, option )";
@@ -2659,15 +2678,21 @@ thaw(SV *data, SV *sv_option = 0)
         }
 
 void
-deparse_amf(SV *data, SV * sv_option = 0)
+deparse_amf(SV *data, ... )
     PROTOTYPE: $;$
     ALIAS:
 	Storable::AMF::deparse_amf=1
 	Storable::AMF::deparse_amf0=2
     INIT:
         SV* retvalue;
+        SV* sv_option;
 	struct io_struct io[1];
     PPCODE:
+        check_bounds(1,2, "sv_option=0");
+        if ( items == 1 )
+            sv_option = 0;
+        else 
+            sv_option = ST(1);
 	PERL_UNUSED_VAR(ix);
         if ( ! Sigsetjmp(io->target_error, 0)){
             io->subname = "Storable::AMF0::deparse( data, option )";
@@ -2692,15 +2717,21 @@ deparse_amf(SV *data, SV * sv_option = 0)
         }
 
 
-void freeze(SV *data, SV *sv_option = 0 )
+void freeze(SV *data, ... )
     ALIAS:
 	Storable::AMF::freeze=1
 	Storable::AMF::freeze0=2
     PROTOTYPE: $;$
     INIT:
         SV * retvalue;
+        SV * sv_option;
         struct io_struct io[1];
     PPCODE:
+        check_bounds(1,2, "sv_option=0");
+        if ( items == 1 )
+            sv_option = 0;
+        else 
+            sv_option = ST(1);
 	PERL_UNUSED_VAR(ix);
         if (! Sigsetjmp(io->target_error, 0)){
             io_out_init(aTHX_  io, sv_option, AMF0_VERSION);
@@ -2719,14 +2750,20 @@ void freeze(SV *data, SV *sv_option = 0 )
 MODULE = Storable::AMF0		PACKAGE = Storable::AMF3		
 
 void
-deparse_amf(SV *data, SV* sv_option = 0)
+deparse_amf(SV *data, ... )
     ALIAS: 
         Storable::AMF::deparse_amf3 = 1
     PROTOTYPE: $;$
     INIT:
         SV* retvalue;
+        SV* sv_option = 0;
         struct io_struct io[1];
     PPCODE:
+        check_bounds(1,2, "sv_option=0");
+        if ( items == 1 )
+            sv_option = 0;
+        else 
+            sv_option = ST(1);
 	PERL_UNUSED_VAR(ix);
         if ( ! Sigsetjmp(io->target_error, 0)){
             io->subname = "Storable::AMF3::deparse_amf( data, option )";
@@ -2748,14 +2785,20 @@ deparse_amf(SV *data, SV* sv_option = 0)
         }
 
 void
-thaw(SV *data, SV *sv_option = 0)
+thaw(SV *data, ... )
     PROTOTYPE: $;$
     INIT:
         SV* retvalue;
+        SV *sv_option = 0;
         struct io_struct io[1];
     ALIAS:
 	Storable::AMF::thaw3=1
     PPCODE:
+        check_bounds(1,2, "sv_option=0");
+        if ( items == 1 )
+            sv_option = 0;
+        else 
+            sv_option = ST(1);
 	PERL_UNUSED_VAR(ix);
         if ( ! Sigsetjmp(io->target_error, 0)){
             io->subname = "Storable::AMF3::thaw( data, option )";
@@ -3040,11 +3083,17 @@ total_sv()
 MODULE=Storable::AMF0 PACKAGE = Storable::AMF 
 
 void 
-thaw0_sv( SV * data, SV * element, SV *sv_option = 0)
+thaw0_sv(SV * data, SV * element, ... )
     INIT: 
         SV * retvalue;
+        SV *sv_option;
         struct io_struct io[1];
     PPCODE:
+        check_bounds(2,3, "sv_option=0");
+        if ( items == 1 )
+            sv_option = 0;
+        else 
+            sv_option = ST(1);
 	/* PERL_UNUSED_VAR(ix); */
         if ( ! Sigsetjmp(io->target_error, 0) ){
             io->subname = "Storable::AMF0::thaw( data, option )";
