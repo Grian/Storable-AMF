@@ -1,7 +1,10 @@
 Revision history for Perl extension Storable::AMF.
 
-1.06    2015-02-18
-        - Better locking for store
+1.06    2015-02-19
+        - Better locking for store (2015-02-18)
+        - tests for lock_store (2015-02-19)
+        - prototypes for XS    (2015-02-19)
+        - code tidy            (2015-02-19)
 
 1.05    2015-02-14
         - Fixed FreeBSD compiling issues

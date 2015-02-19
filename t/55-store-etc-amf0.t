@@ -4,9 +4,11 @@ use strict;
 use warnings;
 use ExtUtils::testlib;
 use Storable::AMF0 qw(freeze thaw retrieve store nstore lock_store lock_nstore lock_retrieve);
-use Data::Dumper;
+use Storable::AMF3 qw();
+use Fcntl qw(LOCK_SH LOCK_EX LOCK_UN);
+use Time::HiRes qw(sleep);
 
-eval "use Test::More tests=>18;";
+eval "use Test::More tests=>20;";
 warn $@ if $@;
 
 my $a = { test => "Hello World\n\r \r\n"};
@@ -38,4 +40,51 @@ ok(lock_store( $a , $file));
 ok(-e $file, "exists file");
 ok(retrieve $file, "retrieve ok lock_store");
 is_deeply(retrieve $file, $a, "retrieve ok deeply lock_store");
+
+sub check_lock {
+    my ( $store, $retrieve, $lock_store ) = @_;
+    my @pmain;
+    no warnings 'redefine';
+    local *store = $store;
+    local *retrieve = $retrieve;
+    local *lock_store = $lock_store;
+    use warnings 'redefine';
+    my @pchld;
+    pipe $pmain[0], $pmain[1];
+    pipe $pchld[0], $pchld[1];
+    select( ( ( select $pmain[1] ), $| = 1 )[0] );
+    select( ( ( select $pchld[1] ), $| = 1 )[0] );
+
+    if ( my $pid = fork ) {
+        open my $fh, ">", $file;
+        flock $fh, LOCK_SH;
+        store( $a, $file );
+        print { $pchld[1] } "start\n";
+        sysread $pmain[0], $b, 6;
+
+        sleep(0.25);
+#        print STDERR "btst\n";
+#        print STDERR "size=", -s $file, "\n";
+        ok( defined( retrieve($file) ), "lockfree" );
+#        print STDERR "atst\n";
+        close($fh);
+
+        waitpid $pid, 0;
+    }
+    elsif ( defined $pid ) {
+        sysread $pchld[0], $b, 6;
+        print { $pmain[1] } "cont0\n";
+#        print STDERR "bst\n";
+        lock_store( $a, $file );
+#        print STDERR "ast\n";
+        exit 0;
+    }
+    else {
+        ok( 1, "skipped" );
+        1;
+    }
+}
+check_lock(\&Storable::AMF0::store, \&Storable::AMF0::retrieve, \&Storable::AMF0::lock_store);
+check_lock(\&Storable::AMF3::store, \&Storable::AMF3::retrieve, \&Storable::AMF3::lock_store);
+# cleanup
 unlink $file or die "Can't unlink $file: $!";

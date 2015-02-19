@@ -4,7 +4,3 @@
     - add documentation for boolean, basic externalized objects, boolean_json
     - memleak for amf_tmp_storage
     - optimize amf[03]_format_one, more boolean
-    - test for lockstore for AMF0/AMF3
-    - add prototypes
-    - sv_option uniform style
-

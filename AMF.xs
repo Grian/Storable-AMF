@@ -2599,6 +2599,7 @@ FREE_INLINE void ref_clear(pTHX_ HV * go_once, SV *sv){
         croak_xs_usage( cv, mess );
 
 MODULE = Storable::AMF0 PACKAGE = Storable::AMF0::TemporaryStorage
+PROTOTYPES: DISABLE 
 
 void
 new(SV *class, SV *option=0)
@@ -2610,6 +2611,8 @@ void
 DESTROY(SV *self)
     PPCODE:
     destroy_tmp_storage( aTHX_ self );
+
+PROTOTYPES: ENABLE
 
 MODULE = Storable::AMF0 PACKAGE = Storable::AMF0		
 
@@ -2631,17 +2634,17 @@ void
 amf_tmp_storage(...)
     INIT:
         SV * retvalue;
-        SV * option;
+        SV * sv_option;
     PROTOTYPE: ;$
     PPCODE:
         if (items<0 || items > 1)
-            croak_xs_usage(cv, "option=0");
+            croak_xs_usage(cv, "sv_option=0");
         if (items<1)
-            option = 0;
+            sv_option = 0;
         else 
-            option = ST(0);
+            sv_option = ST(0);
 
-        retvalue = get_tmp_storage(aTHX_ option);
+        retvalue = get_tmp_storage(aTHX_ sv_option);
         XPUSHs(retvalue);
 
 void
@@ -2818,6 +2821,7 @@ thaw(SV *data, ... )
 
 void
 _test_thaw_integer(SV*data)
+    PROTOTYPE: $
     INIT:
         SV* retvalue;
         struct io_struct io[1];
@@ -2838,6 +2842,7 @@ _test_thaw_integer(SV*data)
 
 void
 _test_freeze_integer(SV*data)
+    PROTOTYPE: $
     PREINIT:
         SV * retvalue;
         struct io_struct io[1];
@@ -2856,6 +2861,7 @@ _test_freeze_integer(SV*data)
 
 void 
 endian()
+    PROTOTYPE:
     PREINIT:
         SV * retvalue;
     PPCODE:
@@ -3052,6 +3058,7 @@ MODULE = Storable::AMF0 PACKAGE = Storable::AMF::Util
 
 void
 total_sv()
+    PROTOTYPE: 
     PPCODE:
     I32 visited  = 0;
     SV* sva;
@@ -3084,16 +3091,17 @@ MODULE=Storable::AMF0 PACKAGE = Storable::AMF
 
 void 
 thaw0_sv(SV * data, SV * element, ... )
+    PROTOTYPE: $$;$
     INIT: 
         SV * retvalue;
         SV *sv_option;
         struct io_struct io[1];
     PPCODE:
         check_bounds(2,3, "sv_option=0");
-        if ( items == 1 )
+        if ( items == 2 )
             sv_option = 0;
         else 
-            sv_option = ST(1);
+            sv_option = ST(2);
 	/* PERL_UNUSED_VAR(ix); */
         if ( ! Sigsetjmp(io->target_error, 0) ){
             io->subname = "Storable::AMF0::thaw( data, option )";
