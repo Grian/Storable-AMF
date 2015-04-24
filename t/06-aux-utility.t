@@ -5,6 +5,10 @@ use Scalar::Util qw(refaddr);
 use GrianUtils;
 use strict;
 no warnings 'once';
+if ($[ > 5.020){
+    eval 'use Test::More skip_all => "This perl version is too modern( >= 5.020 )"';
+    exit;
+}
 eval 'use Test::More tests => 6+6;';
 use warnings;
 no warnings 'once';
