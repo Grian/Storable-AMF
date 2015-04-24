@@ -64,6 +64,8 @@ t/70-Mapper.t
 t/71-amf-plus-marker.t
 t/72-max-array.t
 t/73-amf-tmp-storage.t
+t/74-amf-skip-bad.t
+t/75-devel-api.t
 t/AMF0/01-array-foo-bar-x2.pack
 t/AMF0/01-boolean-false.pack
 t/AMF0/01-boolean-true.pack
