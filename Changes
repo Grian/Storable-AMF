@@ -1,5 +1,8 @@
 Revision history for Perl extension Storable::AMF.
 
+1.07    2015-04-25
+        - test skip for modern perl
+
 1.06    2015-02-19
         - Better locking for store (2015-02-18)
         - tests for lock_store (2015-02-19)
