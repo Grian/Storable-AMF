@@ -14,10 +14,8 @@ if ( $] < MIN_PERL_VERSION  ) {
 
 our %MyModule = (
     PREREQ_PM => {
-        # 'Module::Build::Compat' => 0.02,
-        #        'Module::Build' => 0.2,
 		'XSLoader'   => 0.06,
-    },    # e.g., Module::Name => 1.1
+    },
     ABSTRACT => 'serializing/deserializing AMF0/AMF3 data',
     AUTHOR   => 'Grishaev Anatoliy  <grian@cpan.org>',
     $ExtUtils::MakeMaker::VERSION >= 6.48 ? ( MIN_PERL_VERSION => MIN_PERL_VERSION ) : (),

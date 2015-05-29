@@ -7,6 +7,7 @@ use Storable::AMF0 qw(freeze thaw retrieve store nstore lock_store lock_nstore l
 use Storable::AMF3 qw();
 use Fcntl qw(LOCK_SH LOCK_EX LOCK_UN);
 use Time::HiRes qw(sleep);
+use Config;
 
 eval "use Test::More tests=>20;";
 warn $@ if $@;
@@ -55,7 +56,10 @@ sub check_lock {
     select( ( ( select $pmain[1] ), $| = 1 )[0] );
     select( ( ( select $pchld[1] ), $| = 1 )[0] );
 
-    if ( my $pid = fork ) {
+    if ( $Config{osname}=~m/Win32/i ){
+        ok( 1, "Win32 skipped");
+    }
+    elsif ( my $pid = fork ) {
         open my $fh, ">", $file;
         flock $fh, LOCK_SH;
         store( $a, $file );
@@ -84,6 +88,7 @@ sub check_lock {
         1;
     }
 }
+
 check_lock(\&Storable::AMF0::store, \&Storable::AMF0::retrieve, \&Storable::AMF0::lock_store);
 check_lock(\&Storable::AMF3::store, \&Storable::AMF3::retrieve, \&Storable::AMF3::lock_store);
 # cleanup

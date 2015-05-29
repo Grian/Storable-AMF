@@ -1,5 +1,8 @@
 Revision history for Perl extension Storable::AMF.
 
+1.08    2015-05-29
+        - Skipping test for Win32
+
 1.07    2015-04-25
         - test skip for modern perl
 
