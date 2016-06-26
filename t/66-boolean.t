@@ -1,3 +1,4 @@
+# vim: ts=8 sw=4 sts=4 expandtab
 #===============================================================================
 #
 #         FILE:  66-boolean-3.t
@@ -106,16 +107,16 @@ is_deeply( amf3_roundtrip( true ),  $json_true, '"boolean" comes back as JSON::X
 is_deeply( amf3_roundtrip( false ), $json_false, '"boolean" comes back as JSON::XS (A3)' );
 
 # AMF0 Added more accurate tests 
-isa_ok( amf0_roundtrip( true ) , "JSON::XS::Boolean" );
-isa_ok( amf0_roundtrip( $json_true ) , "JSON::XS::Boolean" );
-isa_ok( amf0_roundtrip( false ) , "JSON::XS::Boolean" );
-isa_ok( amf0_roundtrip( $json_false ) , "JSON::XS::Boolean" );
+isa_ok( amf0_roundtrip( true ) , "JSON::PP::Boolean" );
+isa_ok( amf0_roundtrip( $json_true ) , "JSON::PP::Boolean" );
+isa_ok( amf0_roundtrip( false ) , "JSON::PP::Boolean" );
+isa_ok( amf0_roundtrip( $json_false ) , "JSON::PP::Boolean" );
 
 # AMF3 Added more accurate tests 
-isa_ok( amf3_roundtrip( true ) , "JSON::XS::Boolean" );
-isa_ok( amf3_roundtrip( $json_true ) , "JSON::XS::Boolean" );
-isa_ok( amf3_roundtrip( false ) , "JSON::XS::Boolean" );
-isa_ok( amf3_roundtrip( $json_false ) , "JSON::XS::Boolean" );
+isa_ok( amf3_roundtrip( true ) , "JSON::PP::Boolean" );
+isa_ok( amf3_roundtrip( $json_true ) , "JSON::PP::Boolean" );
+isa_ok( amf3_roundtrip( false ) , "JSON::PP::Boolean" );
+isa_ok( amf3_roundtrip( $json_false ) , "JSON::PP::Boolean" );
 
 ok( is_amf_boolean(  $a = JSON::XS::true(), 1), "true" );
 ok( is_amf_boolean(  $a = JSON::XS::false(), 0), "false" );
@@ -139,13 +140,13 @@ sub is_amf3_boolean{
 }
 sub amf0_roundtrip {
     my $src = shift;
-	my $amf = freeze0( $src );
+    my $amf = freeze0( $src );
     my $struct = thaw0($amf, $nop);
     return $struct;
 }
 sub amf3_roundtrip {
     my $src = shift;
-	my $amf = freeze3( $src );
+    my $amf = freeze3( $src );
     my $struct = thaw3($amf, $nop);
     return $struct;
 }

@@ -1,4 +1,5 @@
 package Storable::AMF3;
+# vim: ts=8 sw=4 sts=4 
 use strict;
 use warnings;
 use Fcntl qw(:flock);
@@ -7,7 +8,7 @@ use Exporter 'import';
 use Carp qw(croak);
 BEGIN{
 	our $VERSION;
-	$VERSION='1.08' unless $INC{'Storable/AMF0.pm'};
+	$VERSION='1.09' unless $INC{'Storable/AMF0.pm'};
 };
 use Storable::AMF0 ();
 

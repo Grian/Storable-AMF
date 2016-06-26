@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+#use ExtUtils::testlib;
 use Storable::AMF0;
 eval 'use Test::More tests=>1;';
 

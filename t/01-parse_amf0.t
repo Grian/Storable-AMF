@@ -1,10 +1,11 @@
+# vim : ts=8 sw=4 sts=4
 use lib 't';
 use strict;
 use warnings;
 use ExtUtils::testlib;
 use Storable::AMF0 qw(freeze thaw retrieve parse_option);
 use GrianUtils;
-use Data::Dumper;
+use autouse 'Data::Dumper' => 'Dumper';
 use constant MDATE=>parse_option( 'millisecond_date' );
 use constant OPT_UD=>parse_option( 'utf8_decode, millisecond_date' );
 my $directory = qw(t/AMF0);
@@ -24,9 +25,10 @@ TEST_LOOP: for my $packet (@item){
 	$option = OPT_UD if ($eval =~m/use\s+utf8/) ;
 	if ( $name =~m/boolean/ ){
 #		print STDERR Dumper( $packet );
-		delete @$packet{ 'obj_xml', 'xml', 'dump', 'eval_xml', 'obj'};
-		$packet->{eval} = "''; ";
+#		delete @$packet{ 'obj_xml', 'xml', 'dump', 'eval_xml', 'obj'};
+#		$packet->{eval} = "''; ";
 # GrianUtils->create_pack( '.', $name, $packet );
+	    $eval =~s/JSON::XS::Boolean/JSON::PP::Boolean/g;
 	}
 
 	my $new_obj;

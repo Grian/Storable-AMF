@@ -1,34 +1,36 @@
 package Storable::AMF0;
+# vim: ts=8 sw=4 sts=4 
 use strict;
 use warnings;
 use Fcntl qw(:flock);
-our $VERSION = '1.08';
+our $VERSION = '1.09';
 use subs qw(freeze thaw);
-use Scalar::Util qw(refaddr reftype);    # for ref_circled
 use Exporter 'import';
 use Carp qw(croak);
+{   our @Bool = (bless( do{\(my $o = 0)},'JSON::XS::Boolean'), bless( do{\(my $o = 1)},'JSON::XS::Boolean')); 
+    local $@; 
+    eval { 
+	require Types::Serialiser; 
+	@Bool = (Types::Serialiser::false(), Types::Serialiser::true());
+    }; 
+};
 
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
 
-our %EXPORT_TAGS = (
-    'all' => [
-        qw(
-          freeze thaw	dclone
-          retrieve lock_retrieve lock_store lock_nstore store nstore
-          ref_lost_memory ref_clear
-          deparse_amf new_amfdate perl_date
-		  new_date
-		  parse_option
-		  parse_serializator_option
-          )
-    ]
-);
+our @EXPORT_TAGS_ALL = qw(
+    freeze thaw	dclone
+    retrieve lock_retrieve lock_store lock_nstore store nstore
+    ref_lost_memory ref_clear
+    deparse_amf new_amfdate perl_date
+	    new_date
+	    parse_option
+	    parse_serializator_option
+    );
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-
-our @EXPORT = qw();
+our %EXPORT_TAGS = ( 'all' => \@EXPORT_TAGS_ALL);
+our @EXPORT_OK = ( @EXPORT_TAGS_ALL );
 
 sub retrieve($) {
     my $file = shift;
@@ -92,21 +94,24 @@ sub ref_clear($);
 	*{"Storable::AMF::$_"} = *{"Storable::AMF0::$_"} for grep m/retrieve|store/, @EXPORT_OK;
 }};
 
-sub _ref_selfref($$);
+*refaddr = \&Scalar::Util::refaddr;
+*reftype = \&Scalar::Util::reftype;
 
-sub _ref_selfref($$) {
+sub _ref_selfref($$);
+sub _ref_selfref($$){
+    require Scalar::Util;
     my $obj_addr = shift;
     my $value    = shift;
-    my $addr     = refaddr $value;
+    my $addr     = refaddr($value);
     return unless defined $addr;
-    if ( reftype $value eq 'ARRAY' ) {
+    if ( reftype($value) eq 'ARRAY' ) {
 
         return $$obj_addr{$addr} if exists $$obj_addr{$addr};
         $$obj_addr{$addr} = 1;
         _ref_selfref( $obj_addr, $_ ) && return 1 for @$value;
         $$obj_addr{$addr} = 0;
     }
-    elsif ( reftype $value eq 'HASH' ) {
+    elsif ( reftype($value) eq 'HASH' ) {
 
         return $$obj_addr{$addr} if exists $$obj_addr{$addr};
         $$obj_addr{$addr} = 1;
@@ -120,18 +125,18 @@ sub _ref_selfref($$) {
     return;
 }
 
-
 sub ref_clear($) {
     my $ref = shift;
     my %addr;
-    return unless ( refaddr $ref);
+    require Scalar::Util;
+    return unless ( refaddr($ref));
     my @r;
-    if ( reftype $ref eq 'ARRAY' ) {
+    if ( reftype($ref) eq 'ARRAY' ) {
         @r    = @$ref;
         @$ref = ();
         ref_clear($_) for @r;
     }
-    elsif ( reftype $ref eq 'HASH' ) {
+    elsif ( reftype($ref) eq 'HASH' ) {
         @r    = values %$ref;
         %$ref = ();
         ref_clear($_) for @r;

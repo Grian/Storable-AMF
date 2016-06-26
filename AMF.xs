@@ -1,3 +1,5 @@
+/* vim: ts=8 sw=4 sts=4 
+ * */
 #define _CRT_SECURE_NO_DEPRECATE /* Win32 compilers close eyes... */
 #define PERL_NO_GET_CONTEXT
 #undef  PERL_IMPLICIT_SYS /* Sigsetjmp will not work under this */
@@ -529,23 +531,23 @@ STATIC_INLINE void io_out_init(pTHX_ struct io_struct *io, SV*sv_option, int amf
                 io->hv_object = reuse_storage_ptr->hv_object;
                 io->hv_trait  = reuse_storage_ptr->hv_trait;
 
-    ibuf_size = 10240;
-    ibuf_step = 20480;
+		ibuf_size = 10240;
+		ibuf_step = 20480;
 
 
-    if ( io->options & OPT_TARG ){
-        dXSTARG;
+		if ( io->options & OPT_TARG ){
+		    dXSTARG;
 
-        io->sv_buffer = sbuffer = TARG;
-        (void)SvUPGRADE(sbuffer, SVt_PV);
-        SvPOK_on(sbuffer);
-        SvGROW( sbuffer, 512 );
-    }
-    else {
-        sbuffer = sv_2mortal(newSVpvn("",0));
-        SvGROW(sbuffer, ibuf_size);
-        io->sv_buffer = sbuffer;
-    }
+		    io->sv_buffer = sbuffer = TARG;
+		    (void)SvUPGRADE(sbuffer, SVt_PV);
+		    SvPOK_on(sbuffer);
+		    SvGROW( sbuffer, 512 );
+		}
+		else {
+		    sbuffer = sv_2mortal(newSVpvn("",0));
+		    SvGROW(sbuffer, ibuf_size);
+		    io->sv_buffer = sbuffer;
+		}
 
                 io->buffer_step_inc = 1024;
                 io->ptr = (unsigned char *) SvPV_nolen(io->sv_buffer);
@@ -1611,22 +1613,19 @@ STATIC_INLINE SV* amf0_parse_double(pTHX_ struct io_struct * io){
 }
 
 FREE_INLINE SV*  util_boolean(pTHX_ struct io_struct *io, bool value){
-    if ( ! (io->options & OPT_JSON_BOOLEAN) ){
+    if ( ! (io->options & OPT_JSON_BOOLEAN ) ){
 	SV *sv = boolSV( value );
 	/* SvREFCNT_inc_simple_void_NN( sv ); */
 	return sv;
     } 
     else {
-	SV * sv =  value ? newSViv(1) :newSViv( 0 );
-	SV * rv = newRV_noinc( sv  );
-	HV * stash;
-	stash = gv_stashpvn( "JSON::XS::Boolean", 17, GV_ADD );
-	sv_bless( rv, stash );
-	
-	/*Stupid but it works */
-	return rv;
+	AV *Bool=get_av("Storable::AMF0::Bool", 0); 
+	SV **bool_ref = av_fetch(Bool, value ? 1 : 0, 0);
+	SvREFCNT_inc_simple_void_NN( *bool_ref  );
+	return *bool_ref;
     }
 }
+
 STATIC_INLINE SV* amf0_parse_boolean(pTHX_ struct io_struct * io){
     unsigned char marker;
     bool value; 
@@ -2658,12 +2657,12 @@ thaw(SV *data, ... )
         SV* sv_option;
         struct io_struct io[1];
     PPCODE:
+	PERL_UNUSED_VAR(ix);
         check_bounds(1,2, "sv_option=0");
         if ( items == 1 )
             sv_option = 0;
         else 
             sv_option = ST(1);
-	PERL_UNUSED_VAR(ix);
         if ( ! Sigsetjmp(io->target_error, 0) ){
             io->subname = "Storable::AMF0::thaw( data, option )";
             io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);

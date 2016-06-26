@@ -1,5 +1,8 @@
 Revision history for Perl extension Storable::AMF.
 
+1.09    2016-06-26
+        - FIXING JSON::XS booleans
+
 1.08    2015-05-29
         - Skipping test for Win32
 
