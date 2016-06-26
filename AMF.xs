@@ -1,4 +1,4 @@
-/* vim: ts=8 sw=4 sts=4 
+/* vim: ts=8 sw=4 sts=4 et
  * */
 #define _CRT_SECURE_NO_DEPRECATE /* Win32 compilers close eyes... */
 #define PERL_NO_GET_CONTEXT
@@ -197,11 +197,13 @@ struct io_struct{
     int rc_trait;
     int version;
     int final_version;
-    int options;
     struct io_amf_option* ext_option;
     SV * (*parse_one_object)(pTHX_ struct io_struct * io);
     char *subname;
     char status;
+    int options;
+    int bool_init;
+    SV * Bool[2];
     bool reuse;
 };
 
@@ -413,8 +415,9 @@ FREE_INLINE void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_vers
             }
         } 
         else {        
-            reuse_storage = 0;
-            io->options = SvIV(sv_option);
+	    reuse_storage = 0;
+	    io->options = SvIV(sv_option); 
+	    io->bool_init = 0;
         }
     }
     else {
@@ -1613,16 +1616,22 @@ STATIC_INLINE SV* amf0_parse_double(pTHX_ struct io_struct * io){
 }
 
 FREE_INLINE SV*  util_boolean(pTHX_ struct io_struct *io, bool value){
-    if ( ! (io->options & OPT_JSON_BOOLEAN ) ){
-	SV *sv = boolSV( value );
+    AV *Bool;
+    SV *sv;
+    if (  0 == ( io->options & OPT_JSON_BOOLEAN ) ){
+	sv = boolSV( value );
 	/* SvREFCNT_inc_simple_void_NN( sv ); */
 	return sv;
     } 
     else {
-	AV *Bool=get_av("Storable::AMF0::Bool", 0); 
-	SV **bool_ref = av_fetch(Bool, value ? 1 : 0, 0);
-	SvREFCNT_inc_simple_void_NN( *bool_ref  );
-	return *bool_ref;
+	if (!io->bool_init){
+	    Bool=get_av("Storable::AMF0::Bool", 0); 
+	    io->Bool[0]=*(av_fetch(Bool, 0, 0));
+	    io->Bool[1]=*(av_fetch(Bool, 1, 0));
+	    io->bool_init = 1;
+	}
+	SvREFCNT_inc_simple_void_NN( io->Bool[value] );
+	return io->Bool[value];
     }
 }
 
@@ -1631,7 +1640,7 @@ STATIC_INLINE SV* amf0_parse_boolean(pTHX_ struct io_struct * io){
     bool value; 
     marker = io_read_marker(io);
     value = (marker != '\000');
-    return util_boolean(aTHX_ io, value);
+    return util_boolean(aTHX_ io, value ? 1 : 0);
 }
 
 /* 
