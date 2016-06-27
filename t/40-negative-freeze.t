@@ -3,8 +3,8 @@ use strict;
 use warnings;
 use Test::More tests=>64; #'no_plan';
 use Storable::AMF0 qw(freeze thaw );
-use Data::Dumper;
 
+# vim: ts=8 et sw=4 sts=4
 sub dehex{
 	unpack "H*", $_[0];
 }

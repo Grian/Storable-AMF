@@ -5,8 +5,8 @@ use lib 't';
 use GrianUtils qw(loose);
 use strict;
 use warnings;
-use Data::Dumper;
 
+# vim: ts=8 et sw=4 sts=4
 dfg();
 sub dfg{
     ok( Storable::AMF::Util::total_sv(), "can call total_sv()" );

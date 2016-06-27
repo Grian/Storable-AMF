@@ -1,4 +1,5 @@
 use strict;
+# vim: ts=8 et sw=4 sts=4
 use warnings;
 
 eval "use Test::More;";

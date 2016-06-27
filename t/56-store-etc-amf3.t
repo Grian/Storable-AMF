@@ -1,10 +1,10 @@
 #!perl 
+# vim: ts=8 et sw=4 sts=4
 use lib 't';
 use strict;
 use warnings;
 use ExtUtils::testlib;
 use Storable::AMF3 qw(freeze thaw retrieve store nstore lock_store lock_nstore lock_retrieve);
-use Data::Dumper;
 
 eval "use Test::More tests=>18;";
 warn $@ if $@;

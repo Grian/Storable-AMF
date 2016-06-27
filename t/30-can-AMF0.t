@@ -1,3 +1,4 @@
+# vim: ts=8 et sw=4 sts=4
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl Data-AMF-XS.t'
 

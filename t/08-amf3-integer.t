@@ -1,4 +1,3 @@
-#
 #===============================================================================
 #
 #         FILE:  08-amf3-integer.t
@@ -15,8 +14,8 @@
 
 use strict;
 use warnings;
-use Data::Dumper;
 use Test::More 'no_plan';                      # last test to print
+# vim: ts=8 et sw=4 sts=4
 use ExtUtils::testlib;
 use Storable::AMF qw(freeze3 thaw3);
 sub MARKER_INT(){ 4; }

@@ -1,4 +1,5 @@
 #===============================================================================
+# vim: ts=8 et sw=4 sts=4
 #
 #         FILE:  66-boolean-3.t
 #         COMMENT code taken from boolean-patch 
@@ -10,8 +11,6 @@ use warnings;
 use ExtUtils::testlib;
 use Storable::AMF0 qw(parse_option freeze thaw new_amfdate);
 use Storable::AMF  qw(thaw0 freeze0 thaw3 freeze3);
-use Data::Dumper;
-use Devel::Peek;
 
 eval {
 	require boolean;

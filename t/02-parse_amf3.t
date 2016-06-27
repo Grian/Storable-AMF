@@ -1,10 +1,10 @@
+# vim: ts=8 et sw=4 sts=4
 use lib 't';
 use strict;
 use warnings;
 use ExtUtils::testlib;
 use Storable::AMF3 qw(freeze thaw retrieve parse_option);
 use GrianUtils;
-use Data::Dumper;
 use constant MDATE=>parse_option( 'millisecond_date' );
 use constant OPT_UD=>parse_option( 'utf8_decode, millisecond_date' );
 

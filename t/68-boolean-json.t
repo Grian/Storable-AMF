@@ -1,4 +1,5 @@
 #===============================================================================
+# vim: ts=8 et sw=4 sts=4
 #
 #         FILE:  66-boolean-3.t
 #         COMMENT code taken from boolean-patch 

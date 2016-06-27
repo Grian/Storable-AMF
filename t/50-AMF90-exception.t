@@ -1,3 +1,4 @@
+# vim: ts=8 et sw=4 sts=4
 use lib 't';
 use ExtUtils::testlib;
 use Storable::AMF0 qw(freeze thaw ref_lost_memory ref_clear);
@@ -6,9 +7,7 @@ use GrianUtils qw(ref_mem_safe);
 use strict;
 use warnings;
 no warnings 'once';
-use Data::Dumper;
-#use Test::More tests=>1;
- eval "use Test::More tests=>3;";
+eval "use Test::More tests=>3;";
 
 our $msg = '
 08 00000003 0006 6c656e677468 00 4008000000000000

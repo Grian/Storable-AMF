@@ -1,9 +1,9 @@
 use lib 't';
+# vim: ts=8 et sw=4 sts=4
 use ExtUtils::testlib;
 use strict;
 use warnings;
 use Storable::AMF0 qw(freeze thaw);
-use Data::Dumper;
 use Test::More tests=>8;
 
 my $s = freeze( bless {}, 'testlib');

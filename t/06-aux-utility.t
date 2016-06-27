@@ -1,4 +1,5 @@
 use lib 't';
+# vim: ts=8 et sw=4 sts=4
 use ExtUtils::testlib;
 use Storable::AMF0 qw(ref_lost_memory ref_clear);
 use Scalar::Util qw(refaddr);

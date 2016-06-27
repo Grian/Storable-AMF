@@ -5,7 +5,6 @@ use warnings;
 use ExtUtils::testlib;
 use Storable::AMF0 qw(freeze thaw retrieve parse_option);
 use GrianUtils;
-use autouse 'Data::Dumper' => 'Dumper';
 use constant MDATE=>parse_option( 'millisecond_date' );
 use constant OPT_UD=>parse_option( 'utf8_decode, millisecond_date' );
 my $directory = qw(t/AMF0);

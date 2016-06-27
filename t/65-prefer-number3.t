@@ -1,8 +1,7 @@
 use strict;
+# vim: ts=8 et sw=4 sts=4
 use ExtUtils::testlib;
 use Storable::AMF3 qw(parse_option freeze thaw);
-use Data::Dumper;
-use Devel::Peek;
 
 my $total = 44 ;
 #*CORE::GLOBAL::caller = sub { CORE::caller($_[0] + $Carp::CarpLevel + 1) }; 

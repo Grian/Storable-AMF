@@ -4,8 +4,8 @@ use warnings;
 use ExtUtils::testlib;
 use Storable::AMF0 qw(freeze thaw);
 use GrianUtils;
-use Data::Dumper;
 my $directory = qw(t/AMF0);
+# vim: ts=8 et sw=4 sts=4
 my @item ;
 @item = GrianUtils->my_items($directory);
 

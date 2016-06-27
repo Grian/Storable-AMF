@@ -4,8 +4,8 @@ use warnings;
 use ExtUtils::testlib;
 use Storable::AMF0 qw(freeze thaw);
 use GrianUtils;
-use Data::Dumper;
 use constant test_per_item=>2;
+# vim: ts=8 et sw=4 sts=4
 
 my $directory = qw(t/AMF0);
 my @item ;

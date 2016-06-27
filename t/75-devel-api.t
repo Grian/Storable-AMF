@@ -28,12 +28,7 @@ my $hash = {};
 
 for (0..4)
 {
-
-#    print length( freeze3(  { 0 => 1 , asdf=> 'asdf' }, $storage )), "\n";
-
     thaw0_sv( $s =>  $hash , 0);
-#    print Dumper( $hash );
-
 }
 ok(1, "finished");
 

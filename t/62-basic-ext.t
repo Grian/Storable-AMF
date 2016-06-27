@@ -1,11 +1,11 @@
 use lib 't';
+# vim: ts=8 et sw=4 sts=4
 use strict;
 use warnings;
 use ExtUtils::testlib;
 use Storable::AMF3 qw(freeze thaw retrieve parse_option);
 use constant ODATE => parse_option('millisecond_date');
 use GrianUtils ();
-use Data::Dumper;
 
 my $directory = qw(t/AMF3);
 my @item  = GrianUtils->my_items( $directory );

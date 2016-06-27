@@ -1,9 +1,9 @@
 use ExtUtils::testlib;
+# vim: ts=8 et sw=4 sts=4
 use lib 't';
 use strict;
 use warnings;
 use Storable::AMF0 qw(freeze thaw);
-use Data::Dumper;
 use Test::More 'no_plan';
 
 # several tests for different objects

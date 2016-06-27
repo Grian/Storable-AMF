@@ -1,7 +1,7 @@
 use strict;
+# vim: ts=8 et sw=4 sts=4
 use ExtUtils::testlib;
 use Storable::AMF0 qw(parse_serializator_option);
-use Data::Dumper;
 
 sub parse_option;
 my $total = 4+ 

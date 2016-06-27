@@ -4,8 +4,8 @@ use warnings;
 use ExtUtils::testlib;
 use Storable::AMF0 ();
 use GrianUtils;
-use Data::Dumper;
 
+# vim: ts=8 et sw=4 sts=4
 my $directory = qw(t/AMF0);
 my @item ;
 @item = grep $_->{name}=~m/^25-/, GrianUtils->my_items($directory);

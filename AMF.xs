@@ -205,6 +205,7 @@ struct io_struct{
     char *subname;
     char status;
     int options;
+    int default_options;
     int bool_init;
     SV * Bool[2];
     bool reuse;
@@ -360,7 +361,9 @@ FREE_INLINE struct io_struct *  tmpstorage_create_io(pTHX_ void*ignore){
     SvPOK_on( io->sv_buffer );
     SvGROW( io->sv_buffer, 32 ); 
     */
+    io->default_options = DEFAULT_MASK;
     io->options = DEFAULT_MASK;
+    io->reuse   = 1;
 
     return io;
 }
@@ -370,22 +373,22 @@ FREE_INLINE struct io_struct *  tmpstorage_create_and_cache(pTHX_ CV *cv){
     SV *cache_sv;
     mg = mg_findext( (SV *)cv, PERL_MAGIC_ext, &my_vtbl_empty );
     if (mg){
-        fprintf(stderr, "Found magic=%p\n", mg->mg_ptr);
+        /* fprintf(stderr, "Found magic=%p\n", mg->mg_ptr); */
         io = (struct io_struct *)mg->mg_ptr;
         return io;
     }
     cache_sv = get_sv("Storable::AMF0::CacheIO", GV_ADDMULTI | GV_ADD);
-    mg = mg_findext( (SV *)cache_sv, PERL_MAGIC_ext, &my_vtbl_empty );
+    mg = SvTYPE(cache_sv) ? mg_findext( (SV *)cache_sv, PERL_MAGIC_ext, &my_vtbl_empty ) : NULL;
     if (mg){
-        fprintf(stderr, "Found with var magic=%p\n", mg->mg_ptr);
+        /* fprintf(stderr, "Found with var magic=%p\n", mg->mg_ptr); */
         io = (struct io_struct *)mg->mg_ptr;
     }
     else {
+        /* fprintf(stderr, "Not Found magic=%p\n", io); */
         io = tmpstorage_create_io(aTHX_ NULL); 
         sv_magicext( (SV *)cache_sv, NULL, PERL_MAGIC_ext, &my_vtbl_empty, (const char * const)io, 0);
     }
 
-    fprintf(stderr, "Not Found magic=%p\n", io);
     sv_magicext( (SV *)cv, NULL, PERL_MAGIC_ext, &my_vtbl_empty, (const char * const)io, 0);
     return io;
 }
@@ -2705,7 +2708,7 @@ thaw(SV *data, ... )
     INIT:
         SV* retvalue;
         SV* sv_option;
-        struct io_struct io[1];
+        struct io_struct *io;
     PPCODE:
 	PERL_UNUSED_VAR(ix);
         check_bounds(1,2, "sv_option=0");
@@ -2713,6 +2716,7 @@ thaw(SV *data, ... )
             sv_option = 0;
         else 
             sv_option = ST(1);
+        io = tmpstorage_create_and_cache(aTHX_ cv );
         if ( ! Sigsetjmp(io->target_error, 0) ){
             io->subname = "Storable::AMF0::thaw( data, option )";
             io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
@@ -2726,6 +2730,8 @@ thaw(SV *data, ... )
             XPUSHs(retvalue);
         }
         else {
+            if ( io->reuse )
+                io_in_cleanup(aTHX_ io);
             io_format_error( aTHX_ io );
         }
 
@@ -2738,7 +2744,7 @@ deparse_amf(SV *data, ... )
     INIT:
         SV* retvalue;
         SV* sv_option;
-	struct io_struct io[1];
+	struct io_struct *io;
     PPCODE:
         check_bounds(1,2, "sv_option=0");
         if ( items == 1 )
@@ -2746,6 +2752,7 @@ deparse_amf(SV *data, ... )
         else 
             sv_option = ST(1);
 	PERL_UNUSED_VAR(ix);
+        io = tmpstorage_create_and_cache(aTHX_ cv );
         if ( ! Sigsetjmp(io->target_error, 0)){
             io->subname = "Storable::AMF0::deparse( data, option )";
             io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
@@ -2777,7 +2784,7 @@ void freeze(SV *data, ... )
     INIT:
         SV * retvalue;
         SV * sv_option;
-        struct io_struct io[1];
+        struct io_struct *io;
     PPCODE:
         check_bounds(1,2, "sv_option=0");
         if ( items == 1 )
@@ -2785,6 +2792,7 @@ void freeze(SV *data, ... )
         else 
             sv_option = ST(1);
 	PERL_UNUSED_VAR(ix);
+        io = tmpstorage_create_and_cache(aTHX_ cv );
         if (! Sigsetjmp(io->target_error, 0)){
             io_out_init(aTHX_  io, sv_option, AMF0_VERSION);
             amf0_format_one(aTHX_  io, data);
@@ -2809,7 +2817,7 @@ deparse_amf(SV *data, ... )
     INIT:
         SV* retvalue;
         SV* sv_option = 0;
-        struct io_struct io[1];
+        struct io_struct *io;
     PPCODE:
         check_bounds(1,2, "sv_option=0");
         if ( items == 1 )
@@ -2817,6 +2825,7 @@ deparse_amf(SV *data, ... )
         else 
             sv_option = ST(1);
 	PERL_UNUSED_VAR(ix);
+        io = tmpstorage_create_and_cache(aTHX_ cv );
         if ( ! Sigsetjmp(io->target_error, 0)){
             io->subname = "Storable::AMF3::deparse_amf( data, option )";
             io_in_init(aTHX_  io, data, AMF3_VERSION, sv_option);
@@ -2842,7 +2851,7 @@ thaw(SV *data, ... )
     INIT:
         SV* retvalue;
         SV *sv_option = 0;
-        struct io_struct io[1];
+        struct io_struct *io;
     ALIAS:
 	Storable::AMF::thaw3=1
     PPCODE:
@@ -2852,6 +2861,7 @@ thaw(SV *data, ... )
         else 
             sv_option = ST(1);
 	PERL_UNUSED_VAR(ix);
+        io = tmpstorage_create_and_cache(aTHX_ cv );
         if ( ! Sigsetjmp(io->target_error, 0)){
             io->subname = "Storable::AMF3::thaw( data, option )";
             io_in_init(aTHX_  io, data, AMF3_VERSION, sv_option);
@@ -2873,8 +2883,9 @@ _test_thaw_integer(SV*data)
     PROTOTYPE: $
     INIT:
         SV* retvalue;
-        struct io_struct io[1];
+        struct io_struct *io;
     PPCODE:
+        io = tmpstorage_create_and_cache(aTHX_ cv );
         if ( ! Sigsetjmp(io->target_error, 0)){
             io->subname = "Storable::AMF3::_test_thaw_integer( data, option )";
             io_in_init(aTHX_  io, data, AMF3_VERSION, 0 );
@@ -2894,8 +2905,9 @@ _test_freeze_integer(SV*data)
     PROTOTYPE: $
     PREINIT:
         SV * retvalue;
-        struct io_struct io[1];
+        struct io_struct *io;
     PPCODE:
+        io = tmpstorage_create_and_cache(aTHX_ cv );
         if (! Sigsetjmp(io->target_error, 0)){
             io_out_init(aTHX_  io, 0, AMF3_VERSION);
             amf3_write_integer(aTHX_  io, SvIV(data));
@@ -2922,11 +2934,12 @@ void freeze(SV *data, SV *sv_option = 0 )
     PROTOTYPE: $;$
     PREINIT:
         SV * retvalue;
-        struct io_struct io[1];
+        struct io_struct *io;
     ALIAS:
 	Storable::AMF::freeze3=1
     PPCODE:
 	PERL_UNUSED_VAR(ix); 
+        io = tmpstorage_create_and_cache(aTHX_ cv );
         if (! Sigsetjmp(io->target_error, 0)){
             io_out_init(aTHX_  io, sv_option, AMF3_VERSION);
             amf3_format_one(aTHX_  io, data);
@@ -3144,7 +3157,7 @@ thaw0_sv(SV * data, SV * element, ... )
     INIT: 
         SV * retvalue;
         SV *sv_option;
-        struct io_struct io[1];
+        struct io_struct *io;
     PPCODE:
         check_bounds(2,3, "sv_option=0");
         if ( items == 2 )
@@ -3152,6 +3165,7 @@ thaw0_sv(SV * data, SV * element, ... )
         else 
             sv_option = ST(2);
 	/* PERL_UNUSED_VAR(ix); */
+        io = tmpstorage_create_and_cache(aTHX_ cv );
         if ( ! Sigsetjmp(io->target_error, 0) ){
             io->subname = "Storable::AMF0::thaw( data, option )";
             io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
