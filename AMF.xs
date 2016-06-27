@@ -218,6 +218,7 @@ struct io_struct{
     bool reuse;
 };
 
+FREE_INLINE void ref_clear(pTHX_ HV * go_once, SV *sv);
 FREE_INLINE SV*  tmpstorage_create_sv( pTHX_ CV *cv, SV *option );
 FREE_INLINE void tmpstorage_destroy_sv( pTHX_ SV *self);
 FREE_INLINE struct io_struct * tmpstorage_create_io( pTHX_ void * );
@@ -318,7 +319,6 @@ void io_format_error(pTHX_ struct io_struct *io ){
 
     if ( io->status == 'r' ){
 	io_in_destroy(aTHX_  io, 0); /* all objects */
-        io_in_cleanup(aTHX_  io);
 	if (io->options & OPT_RAISE_ERROR){
 	    croak("Parse AMF%d: %s (ERR-%d)", io->version, message, error_code);
 	}
@@ -504,7 +504,7 @@ FREE_INLINE void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_vers
     /* Support when  array extend is too big */
     io->arr_max = SvCUR( data );
 
-    bool reuse_storage = 0;
+    bool reuse_storage = 1;
     if (amf_version == AMF3_VERSION) {
         if ( reuse_storage ){
             io->arr_object = reuse_storage_ptr->arr_object2;
@@ -2717,11 +2717,11 @@ thaw(SV *data, ... )
             io->subname = "Storable::AMF0::thaw( data, option )";
             io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
             retvalue = (SV*) (io->parse_one_object(aTHX_  io));
-            /* clean up storable unless need */
-            if ( io->reuse )
-                io_in_cleanup(aTHX_ io);
             retvalue = sv_2mortal(retvalue);
             io_test_eof( aTHX_ io );
+            /* clean up storable unless need */
+            if (io->reuse)
+                io_in_cleanup(aTHX_ io);
             sv_setsv(ERRSV, &PL_sv_undef);
             XPUSHs(retvalue);
         }
@@ -2752,10 +2752,10 @@ deparse_amf(SV *data, ... )
             io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
             
             retvalue = (SV*) (io->parse_one_object(aTHX_  io));
+            sv_2mortal(retvalue);
             /* clean up storable unless need */
             if ( io->reuse )
                 io_in_cleanup(aTHX_ io);
-            retvalue = sv_2mortal(retvalue);
             sv_setsv(ERRSV, &PL_sv_undef);
             if (GIMME_V == G_ARRAY){
                 XPUSHs(retvalue);
@@ -2824,10 +2824,10 @@ deparse_amf(SV *data, ... )
             io->subname = "Storable::AMF3::deparse_amf( data, option )";
             io_in_init(aTHX_  io, data, AMF3_VERSION, sv_option);
             retvalue = (SV*) (amf3_parse_one(aTHX_  io));
+            sv_2mortal(retvalue);
             /* clean up storable unless need */
             if ( io->reuse )
                 io_in_cleanup(aTHX_ io);
-            sv_2mortal(retvalue);
             sv_setsv(ERRSV, &PL_sv_undef);
 
             XPUSHs(retvalue);
@@ -2860,11 +2860,11 @@ thaw(SV *data, ... )
             io->subname = "Storable::AMF3::thaw( data, option )";
             io_in_init(aTHX_  io, data, AMF3_VERSION, sv_option);
             retvalue = (SV*) (amf3_parse_one(aTHX_  io));
+            sv_2mortal(retvalue);
+            io_test_eof( aTHX_ io );
             /* clean up storable unless need */
             if ( io->reuse )
                 io_in_cleanup(aTHX_ io);
-            sv_2mortal(retvalue);
-            io_test_eof( aTHX_ io );
             sv_setsv(ERRSV, &PL_sv_undef);
             XPUSHs(retvalue);
         }
@@ -3165,10 +3165,10 @@ thaw0_sv(SV * data, SV * element, ... )
             io_in_init(aTHX_  io, data, AMF0_VERSION, sv_option);
             retvalue = (SV*) (amf0_parse_one_tmp( aTHX_  io, element ));
             /* clean up storable unless need */
-            if ( io->reuse )
-                io_in_cleanup(aTHX_ io);
             retvalue = sv_2mortal(retvalue);
             io_test_eof( aTHX_ io );
+            if ( io->reuse )
+                io_in_cleanup(aTHX_ io);
             sv_setsv(ERRSV, &PL_sv_undef);
 
             /* XPUSHs(retvalue); */
