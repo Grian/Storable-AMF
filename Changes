@@ -1,5 +1,10 @@
 Revision history for Perl extension Storable::AMF.
 
+1.20    2016-06-27
+        - test source cleanup
+		- rare chance memleak fixed
+		- shared state buffer 
+
 1.09-10 2016-06-27
         - FIXING JSON::XS booleans tests
 

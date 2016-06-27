@@ -144,7 +144,7 @@
 #define SIGN_BOOL_APPLY( obj, sign, mask ) ( sign > 0 ? obj|=mask : sign <0 ? obj&=~mask : 0 ) 
 #define DEFAULT_MASK (OPT_PREFER_NUMBER|OPT_TARG)
 
-STATIC MGVTBL my_vtbl_empty = {0, 0, 0, 0, 0, 0, 0, 0 };
+STATIC MGVTBL my_vtbl_empty = {0, 0, 0, 0, 0, 0, 0};
 
 char *error_messages[] = {
     "ERR_EOF", 
@@ -293,6 +293,7 @@ io_reserve(pTHX_ struct io_struct *io, int len){
         buf_len = SvLEN(io->sv_buffer);
         while( buf_len < ipos + len + io->buffer_step_inc){
             buf_len *= 4;
+            buf_len += len+io->buffer_step_inc;
         }
         io->ptr = (unsigned char *) SvGROW(io->sv_buffer, buf_len);
         io->pos = io->ptr + ipos;
@@ -386,14 +387,14 @@ FREE_INLINE struct io_struct *  tmpstorage_create_and_cache(pTHX_ CV *cv){
     MAGIC *mg;
     struct io_struct *io;
     SV *cache_sv;
-    mg = mg_findext( (SV *)cv, PERL_MAGIC_ext, &my_vtbl_empty );
+    mg = mg_find( (SV *)cv, PERL_MAGIC_ext);
     if (mg){
         /* fprintf(stderr, "Found magic=%p\n", mg->mg_ptr); */
         io = (struct io_struct *)mg->mg_ptr;
         return io;
     }
     cache_sv = get_sv("Storable::AMF0::CacheIO", GV_ADDMULTI | GV_ADD);
-    mg = SvTYPE(cache_sv) ? mg_findext( (SV *)cache_sv, PERL_MAGIC_ext, &my_vtbl_empty ) : NULL;
+    mg = SvTYPE(cache_sv) ? mg_find( (SV *)cache_sv, PERL_MAGIC_ext ) : NULL;
     if (mg){
         /* fprintf(stderr, "Found with var magic=%p\n", mg->mg_ptr); */
         io = (struct io_struct *)mg->mg_ptr;
@@ -458,6 +459,7 @@ FREE_INLINE void io_out_cleanup(pTHX_ struct io_struct *io){
 }
 FREE_INLINE void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version, SV * sv_option){
     struct io_struct *reuse_storage_ptr=io;
+    bool reuse_storage = 1;
     /*    PerlInterpreter *my_perl = io->interpreter; */
     io->interp = aTHX;
     if ( sv_option ){
@@ -504,7 +506,6 @@ FREE_INLINE void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_vers
     /* Support when  array extend is too big */
     io->arr_max = SvCUR( data );
 
-    bool reuse_storage = 1;
     if (amf_version == AMF3_VERSION) {
         if ( reuse_storage ){
             io->arr_object = reuse_storage_ptr->arr_object2;
@@ -609,6 +610,9 @@ STATIC_INLINE void io_out_init(pTHX_ struct io_struct *io, SV*sv_option, int amf
         (void)SvUPGRADE(sv_buffer, SVt_PV);
         SvPOK_on(sv_buffer);
         SvGROW( sv_buffer, 7 );
+        if (SvLEN(sv_buffer) <= 64 ){
+            sv_buffer = reuse_storage_ptr->sv_buffer2;
+        }
     }
     else {
         if (io->reuse){
