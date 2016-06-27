@@ -1,4 +1,5 @@
-/* vim: ts=8 sw=4 sts=4 et
+/* 
+ * vim: ts=8 sw=4 sts=4 et
  * */
 #define _CRT_SECURE_NO_DEPRECATE /* Win32 compilers close eyes... */
 #define PERL_NO_GET_CONTEXT
@@ -143,6 +144,8 @@
 #define SIGN_BOOL_APPLY( obj, sign, mask ) ( sign > 0 ? obj|=mask : sign <0 ? obj&=~mask : 0 ) 
 #define DEFAULT_MASK (OPT_PREFER_NUMBER|OPT_TARG)
 
+STATIC MGVTBL my_vtbl_empty = {0, 0, 0, 0, 0, 0, 0, 0 };
+
 char *error_messages[] = {
     "ERR_EOF", 
     "ERR_BAD_AMF0_REF", 
@@ -207,8 +210,10 @@ struct io_struct{
     bool reuse;
 };
 
-FREE_INLINE SV*  get_tmp_storage( pTHX_ SV *option );
-FREE_INLINE void destroy_tmp_storage( pTHX_ SV *self);
+FREE_INLINE SV*  tmpstorage_create_sv( pTHX_ CV *cv, SV *option );
+FREE_INLINE void tmpstorage_destroy_sv( pTHX_ SV *self);
+FREE_INLINE struct io_struct * tmpstorage_create_io( pTHX_ void * );
+FREE_INLINE void tmpstorage_destroy_io( pTHX_ struct io_struct *io);
 
 STATIC_INLINE SV * amf0_parse_one(pTHX_ struct io_struct * io);
 STATIC_INLINE SV * amf3_parse_one(pTHX_ struct io_struct * io);
@@ -217,7 +222,7 @@ FREE_INLINE void io_out_cleanup(pTHX_ struct io_struct * io);
 
 FREE_INLINE void io_test_eof(pTHX_ struct io_struct *io);
 FREE_INLINE void io_register_error(struct io_struct *io, int);
-FREE_INLINE void io_register_error_and_free(pTHX_ struct io_struct *io, int, void *);
+FREE_INLINE void io_register_error_and_free(pTHX_ struct io_struct *io, int, SV *);
 FREE_INLINE int
 io_position(struct io_struct *io){
     return io->pos-io->ptr;
@@ -328,18 +333,16 @@ void io_format_error(pTHX_ struct io_struct *io ){
     }
 }
 
-FREE_INLINE void io_register_error_and_free(pTHX_ struct io_struct *io, int errtype, void *pointer){
+FREE_INLINE void io_register_error_and_free(pTHX_ struct io_struct *io, int errtype, SV *pointer){
     if (pointer)
         sv_2mortal((SV*) pointer);
     Siglongjmp(io->target_error, errtype);
 }
-FREE_INLINE SV*  get_tmp_storage(pTHX_ SV* option){
+FREE_INLINE struct io_struct *  tmpstorage_create_io(pTHX_ void*ignore){
     struct io_struct * io;
     SV *sv ;
+    PERL_UNUSED_VAR(ignore);
     Newxz( io, 1, struct io_struct );
-    sv = sv_newmortal();
-    sv_setref_iv( sv, "Storable::AMF0::TemporaryStorage", PTR2IV( io ) );
-
     io->arr_trait  = newAV();
     io->arr_string = newAV();
     io->arr_object = newAV();
@@ -351,36 +354,73 @@ FREE_INLINE SV*  get_tmp_storage(pTHX_ SV* option){
     io->hv_trait         = newHV();
     HvSHAREKEYS_off( io->hv_trait );
 
-    /*
+    /* 
     io->sv_buffer        = newSV(0);
     (void)SvUPGRADE(io->sv_buffer, SVt_PV);
     SvPOK_on( io->sv_buffer );
-    SvGROW( io->sv_buffer, 512 ); */
+    SvGROW( io->sv_buffer, 32 ); 
+    */
+    io->options = DEFAULT_MASK;
 
+    return io;
+}
+FREE_INLINE struct io_struct *  tmpstorage_create_and_cache(pTHX_ CV *cv){
+    MAGIC *mg;
+    struct io_struct *io;
+    SV *cache_sv;
+    mg = mg_findext( (SV *)cv, PERL_MAGIC_ext, &my_vtbl_empty );
+    if (mg){
+        fprintf(stderr, "Found magic=%p\n", mg->mg_ptr);
+        io = (struct io_struct *)mg->mg_ptr;
+        return io;
+    }
+    cache_sv = get_sv("Storable::AMF0::CacheIO", GV_ADDMULTI | GV_ADD);
+    mg = mg_findext( (SV *)cache_sv, PERL_MAGIC_ext, &my_vtbl_empty );
+    if (mg){
+        fprintf(stderr, "Found with var magic=%p\n", mg->mg_ptr);
+        io = (struct io_struct *)mg->mg_ptr;
+    }
+    else {
+        io = tmpstorage_create_io(aTHX_ NULL); 
+        sv_magicext( (SV *)cache_sv, NULL, PERL_MAGIC_ext, &my_vtbl_empty, (const char * const)io, 0);
+    }
+
+    fprintf(stderr, "Not Found magic=%p\n", io);
+    sv_magicext( (SV *)cv, NULL, PERL_MAGIC_ext, &my_vtbl_empty, (const char * const)io, 0);
+    return io;
+}
+FREE_INLINE SV*  tmpstorage_create_sv(pTHX_ CV *cv, SV* option){
+    struct io_struct * io;
+    SV *sv ;
+    io = tmpstorage_create_io(aTHX_ NULL);
     if ( option ){
         io->options = SvIV(option);
     }
     else {
         io->options = DEFAULT_MASK;
     }
+    sv = sv_newmortal();
+    sv_setref_iv( sv, "Storable::AMF0::TemporaryStorage", PTR2IV( io ) );
     return sv;
 }
-FREE_INLINE void destroy_tmp_storage( pTHX_ SV *self ){
+FREE_INLINE void tmpstorage_destroy_io( pTHX_ struct io_struct *io ){
+    SvREFCNT_dec( (SV *) io->arr_trait );
+    SvREFCNT_dec( (SV *) io->arr_string );
+    SvREFCNT_dec( (SV *) io->arr_object );
+    SvREFCNT_dec( (SV *) io->hv_object );
+    SvREFCNT_dec( (SV *) io->hv_string );
+    SvREFCNT_dec( (SV *) io->hv_trait );
+    /* 
+    SvREFCNT_dec( (SV *) io->sv_buffer ); */
+    Safefree( io );  
+    /*    fprintf( stderr, "Destroy\n"); */
+}
+FREE_INLINE void tmpstorage_destroy_sv( pTHX_ SV *self ){
     if ( ! SvROK( self )) {
         croak( "Bad Storable::AMF0::TemporaryStorage" );
     }
     else {
-        struct io_struct *io;
-        io = INT2PTR( struct io_struct*, SvIV( SvRV(  self )) );
-        SvREFCNT_dec( (SV *) io->arr_trait );
-        SvREFCNT_dec( (SV *) io->arr_string );
-        SvREFCNT_dec( (SV *) io->arr_object );
-        SvREFCNT_dec( (SV *) io->hv_object );
-        SvREFCNT_dec( (SV *) io->hv_string );
-        SvREFCNT_dec( (SV *) io->hv_trait );
-        /* SvREFCNT_dec( (SV *) io->sv_buffer ); */
-        Safefree( io );  
-    /*    fprintf( stderr, "Destroy\n"); */
+        tmpstorage_destroy_io( aTHX_ INT2PTR( struct io_struct*, SvIV( SvRV( self ) ) ) );
     }
 }
 FREE_INLINE void io_in_cleanup(pTHX_ struct io_struct *io){
@@ -473,6 +513,7 @@ FREE_INLINE void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_vers
             io->parse_one_object = amf0_parse_one;
         }
     }
+    return;
 }
 FREE_INLINE void io_in_destroy(pTHX_ struct io_struct * io, AV *a){
     int i;
@@ -2613,12 +2654,12 @@ void
 new(SV *class, SV *option=0)
     PPCODE:
     PERL_UNUSED_VAR( class );
-    XPUSHs( sv_2mortal( get_tmp_storage( aTHX_ option )));
+    XPUSHs( sv_2mortal( tmpstorage_create_sv( aTHX_ NULL, option )));
 
 void
 DESTROY(SV *self)
     PPCODE:
-    destroy_tmp_storage( aTHX_ self );
+    tmpstorage_destroy_sv( aTHX_ self );
 
 PROTOTYPES: ENABLE
 
@@ -2652,7 +2693,7 @@ amf_tmp_storage(...)
         else 
             sv_option = ST(0);
 
-        retvalue = get_tmp_storage(aTHX_ sv_option);
+        retvalue = tmpstorage_create_sv(aTHX_ NULL, sv_option);
         XPUSHs(retvalue);
 
 void

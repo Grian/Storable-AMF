@@ -15,27 +15,39 @@ use Data::Dumper;
 use Devel::Peek;
 
 sub boolean{
-	return bless \(my $s = $_[0]), 'boolean';
+    return bless \(my $s = $_[0]), 'boolean';
 }
 sub true(){
-	return boolean(1); 
+    return boolean(1); 
 }
 sub false(){
-	return boolean('');
+    return boolean('');
 }
-sub JSON::XS::true{
-	return bless \(my $o = 1), "JSON::XS::Boolean" ;
-}
-sub JSON::XS::false{
-	return bless \(my $o = 0), "JSON::XS::Boolean";
-}
+
+BEGIN{
+if (!exists &JSON::XS::true){
+    eval <<'CODE';
+    sub JSON::XS::true{
+	    return bless \(my $o = 1), "JSON::PP::Boolean" ;
+    }
+    sub JSON::XS::false{
+	    return bless \(my $o = 0), "JSON::PP::Boolean";
+    }
+CODE
+    warn $@ if $@;
+}}
 
 my $total = 17 + 8 + 8 + 2 + 11;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
 my $nop = parse_option('prefer_number, json_boolean');
-our $var;
-#goto ABC;
+my $json_true = JSON::XS::true;
+my $json_false = JSON::XS::false;
+my $boolean_true = true;
+my $boolean_false = false;
+
+# goto ABC;
+# ABC:
 
 # constants
 ok( !is_amf_boolean ( ! !1 ),    'perl bool context not converted(t)');
@@ -43,11 +55,11 @@ ok( !is_amf_boolean ( ! !0 ),    'perl bool context not converted(f)');
 ok( is_amf_boolean ( true ),   '"boolean" true');
 ok( is_amf_boolean ( false ),   '"boolean" false');
 ok( is_amf_boolean ( boolean(undef) ),   '"boolean(undef)"');
-ok( is_amf_boolean ( boolean(0) ),		 '"boolean(0)"');
+ok( is_amf_boolean ( boolean(0) ),	 '"boolean(0)"');
 ok( is_amf_boolean ( boolean('') ),       "boolean('')");
 ok( is_amf_boolean ( boolean(1) ),       '"boolean(1)"');
-ok( is_amf_boolean ( JSON::XS::true ),   'JSON::XS::true');
-ok( is_amf_boolean ( JSON::XS::false ),   'JSON::XS::false');
+ok( is_amf_boolean ( JSON::XS::true() ),   'JSON::XS::true');
+ok( is_amf_boolean ( JSON::XS::false() ),   'JSON::XS::false');
 
 # Vars
 ok( !is_amf_boolean ( $a = 4 ),      'int var');
@@ -57,13 +69,6 @@ ok( is_amf_boolean (  $a = JSON::XS::true ),  'JSON::XS bool var');
 ok( is_amf_boolean (  $a = true ),  'boolean var');
 ok( is_amf_boolean (  $a = JSON::XS::false ),  'JSON::XS bool var');
 ok( is_amf_boolean (  $a = false ),  'boolean var');
-
-
-ABC:
-my $json_true = JSON::XS::true;
-my $json_false = JSON::XS::false;
-my $boolean_true = true;
-my $boolean_false = false;
 
 my $object1 = {
     a => {a => 1},
@@ -107,36 +112,40 @@ is_deeply( amf3_roundtrip( true ),  $json_true, '"boolean" comes back as JSON::X
 is_deeply( amf3_roundtrip( false ), $json_false, '"boolean" comes back as JSON::XS (A3)' );
 
 # AMF0 Added more accurate tests 
-isa_ok( amf0_roundtrip( true ) , "JSON::PP::Boolean" );
-isa_ok( amf0_roundtrip( $json_true ) , "JSON::PP::Boolean" );
-isa_ok( amf0_roundtrip( false ) , "JSON::PP::Boolean" );
-isa_ok( amf0_roundtrip( $json_false ) , "JSON::PP::Boolean" );
+isa_ok( amf0_roundtrip( true ) , ref $json_true );
+isa_ok( amf0_roundtrip( $json_true ) , ref $json_true);
+isa_ok( amf0_roundtrip( false ) , ref $json_false);
+isa_ok( amf0_roundtrip( $json_false ) , ref $json_false);
 
 # AMF3 Added more accurate tests 
-isa_ok( amf3_roundtrip( true ) , "JSON::PP::Boolean" );
-isa_ok( amf3_roundtrip( $json_true ) , "JSON::PP::Boolean" );
-isa_ok( amf3_roundtrip( false ) , "JSON::PP::Boolean" );
-isa_ok( amf3_roundtrip( $json_false ) , "JSON::PP::Boolean" );
+isa_ok( amf3_roundtrip( true ), ref $json_true);
+isa_ok( amf3_roundtrip( $json_true ), ref $json_true);
+isa_ok( amf3_roundtrip( false ) , ref $json_false);
+isa_ok( amf3_roundtrip( $json_false ) , ref $json_false);
 
 ok( is_amf_boolean(  $a = JSON::XS::true(), 1), "true" );
 ok( is_amf_boolean(  $a = JSON::XS::false(), 0), "false" );
 
 sub is_amf_boolean{
-	is_amf0_boolean( @_  ) && is_amf3_boolean( @_  );
+    is_amf0_boolean( @_  ) && is_amf3_boolean( @_  );
 }
 sub is_amf0_boolean{
-	return '' unless ord( my $s = freeze0( $_[0], )) == 1;
-	return 1 unless defined $_[1];
-	my $byte1 = ord( substr($s,1));
-	return 1 if $_[1]  && $byte1 == 1;
-	return 1 if !$_[1] && $byte1 == 0;
-	return '';
+    my $s = freeze0( $_[0], );
+    return '' if !defined $s;
+    return '' unless ord( $s ) == 1;
+    return 1 unless defined $_[1];
+    my $byte1 = ord( substr($s,1));
+    return 1 if $_[1]  && $byte1 == 1;
+    return 1 if !$_[1] && $byte1 == 0;
+    return '';
 }
 sub is_amf3_boolean{
-	my $header = ord( freeze3( $_[0] ));
-	return $header == 2 || $header == 3 unless defined $_[1];
-	return $header == 2 if !$_[1];
-	return $header == 3 if $_[1]
+    my $s = freeze3( $_[0] );
+    return '' if !defined $s;
+    my $header = ord( freeze3( $_[0] ));
+    return $header == 2 || $header == 3 unless defined $_[1];
+    return $header == 2 if !$_[1];
+    return $header == 3 if $_[1]
 }
 sub amf0_roundtrip {
     my $src = shift;

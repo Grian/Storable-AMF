@@ -7,11 +7,17 @@ our $VERSION = '1.09';
 use subs qw(freeze thaw);
 use Exporter 'import';
 use Carp qw(croak);
-{   our @Bool = (bless( do{\(my $o = 0)},'JSON::XS::Boolean'), bless( do{\(my $o = 1)},'JSON::XS::Boolean')); 
+{   our @Bool = (bless( do{\(my $o = 0)},'JSON::PP::Boolean'), bless( do{\(my $o = 1)},'JSON::PP::Boolean')); 
     local $@; 
     eval { 
 	require Types::Serialiser; 
 	@Bool = (Types::Serialiser::false(), Types::Serialiser::true());
+	1
+    } or 
+    eval {
+	require JSON::XS;
+	@Bool = (JSON::XS::false(), JSON::XS::true());
+	1
     }; 
 };
 
