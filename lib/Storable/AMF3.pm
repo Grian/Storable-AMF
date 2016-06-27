@@ -8,7 +8,7 @@ use Exporter 'import';
 use Carp qw(croak);
 BEGIN{
 	our $VERSION;
-	$VERSION='1.09' unless $INC{'Storable/AMF0.pm'};
+	$VERSION='1.10' unless $INC{'Storable/AMF0.pm'};
 };
 use Storable::AMF0 ();
 
