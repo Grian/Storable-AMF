@@ -1,21 +1,21 @@
+#!/usr/bin/perl
+# vim: ft=perl et ts=8 sw=4 sts=4
 use strict;
 use ExtUtils::MakeMaker;
-use constant { MIN_PERL_VERSION => 5.008001 };
+use constant { MIN_PERL_VERSION => 5.007003 };
 use Config;
 
 exit if ( @ARGV && $ARGV[0] eq '--stop' );
 
-# Perl 5.6.2 or less not supported
-if ( $] < MIN_PERL_VERSION  ) {
+# Perl 5.7.3 or less not supported
+if ( $] < MIN_PERL_VERSION ) {
     print "Perl $] not supported by this module\n";
     exit(0);
 }
 
 
 our %MyModule = (
-    PREREQ_PM => {
-		'XSLoader'   => 0.06,
-    },
+    PREREQ_PM => { 'XSLoader' => 0.06, },
     ABSTRACT => 'serializing/deserializing AMF0/AMF3 data',
     AUTHOR   => 'Grishaev Anatoliy  <grian@cpan.org>',
     $ExtUtils::MakeMaker::VERSION >= 6.48 ? ( MIN_PERL_VERSION => MIN_PERL_VERSION ) : (),
