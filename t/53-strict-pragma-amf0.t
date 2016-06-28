@@ -13,20 +13,21 @@ my $total = @item*1;
 eval "use Test::More tests=>$total;";
 warn $@ if $@;
 
-TEST_LOOP: for my $item (@item){
-		my ($name, $obj, $image_amf0) = @$item{qw(name obj amf0)};
-		my $new_obj;
-        if (ref_lost_memory($obj)){
-            ok(! defined(thaw($image_amf0, 1)), "thaw(strict) recurrent $name");
+TEST_LOOP: 
+for my $item (@item) {
+    my ( $name, $obj, $image_amf0 ) = @$item{qw(name obj amf0)};
+    my $new_obj;
+    if ( ref_lost_memory($obj) ) {
+        ok( !defined( thaw( $image_amf0, 1 ) ), "thaw(strict) recurrent $name" );
+    }
+    else {
+        if ( defined($obj) ) {
+            ok( defined( thaw( $image_amf0, 1 ) ), "thaw(strict) non-recurrent $name" );
         }
         else {
-            if (defined($obj)){
-                ok( defined(thaw($image_amf0, 1)) , "thaw(strict) non-recurrent $name") 
-            }
-            else {
-                ok(1);
-            }
+            ok(1);
         }
+    }
 }
 
 

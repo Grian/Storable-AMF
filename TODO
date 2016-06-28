@@ -1,3 +1,4 @@
+	- Fix lock_*  subs 
     - add new Classes InputStream, OutputStream
     - add more documentation on thaw ARRAY, XML
     - Improve testleak for strings

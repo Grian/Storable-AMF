@@ -1,5 +1,8 @@
 Revision history for Perl extension Storable::AMF.
 
+1.21    2016-06-28
+		- Portability issues with 5.010 and etc
+
 1.20    2016-06-27
         - test source cleanup
 		- rare chance memleak fixed

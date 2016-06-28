@@ -1,10 +1,10 @@
 package Storable::AMF;
-# vim: ts=8 sw=4 sts=4 
+# vim: ts=8 sw=4 sts=4 et
 use strict;
 use warnings;
-BEGIN{
-	our $VERSION;
-	$VERSION='1.20' unless $INC{'Storable/AMF0.pm'};
+BEGIN {
+    our $VERSION;
+    $VERSION = '1.21' unless $INC{'Storable/AMF0.pm'};
 }
 use Storable::AMF0; # install and create all methods
 use Exporter 'import';

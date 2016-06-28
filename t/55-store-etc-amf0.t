@@ -43,6 +43,11 @@ ok(-e $file, "exists file");
 ok(retrieve $file, "retrieve ok lock_store");
 is_deeply(retrieve $file, $a, "retrieve ok deeply lock_store");
 
+check_lock(\&Storable::AMF0::store, \&Storable::AMF0::retrieve, \&Storable::AMF0::lock_store);
+check_lock(\&Storable::AMF3::store, \&Storable::AMF3::retrieve, \&Storable::AMF3::lock_store);
+# cleanup
+unlink $file or die "Can't unlink $file: $!";
+
 sub check_lock {
     my ( $store, $retrieve, $lock_store ) = @_;
     my @pmain;
@@ -57,6 +62,7 @@ sub check_lock {
     select( ( ( select $pmain[1] ), $| = 1 )[0] );
     select( ( ( select $pchld[1] ), $| = 1 )[0] );
 
+    umask 0077;
     if ( $Config{osname}=~m/Win32/i ){
         ok( 1, "Win32 skipped");
     }
@@ -68,10 +74,9 @@ sub check_lock {
         sysread $pmain[0], $b, 6;
 
         sleep(0.25);
-#        print STDERR "btst\n";
-#        print STDERR "size=", -s $file, "\n";
-        ok( defined( retrieve($file) ), "lockfree" );
-#        print STDERR "atst\n";
+        local $@;
+        ok( defined( eval {retrieve($file)} ), "lockfree" );
+        print STDERR "$@\n" if $@;
         close($fh);
 
         waitpid $pid, 0;
@@ -79,9 +84,7 @@ sub check_lock {
     elsif ( defined $pid ) {
         sysread $pchld[0], $b, 6;
         print { $pmain[1] } "cont0\n";
-#        print STDERR "bst\n";
         lock_store( $a, $file );
-#        print STDERR "ast\n";
         exit 0;
     }
     else {
@@ -90,7 +93,3 @@ sub check_lock {
     }
 }
 
-check_lock(\&Storable::AMF0::store, \&Storable::AMF0::retrieve, \&Storable::AMF0::lock_store);
-check_lock(\&Storable::AMF3::store, \&Storable::AMF3::retrieve, \&Storable::AMF3::lock_store);
-# cleanup
-unlink $file or die "Can't unlink $file: $!";

@@ -8,6 +8,11 @@
 #include "perl.h"
 #include "XSUB.h"
 
+#define NEED_mg_findext
+#define NEED_grok_number
+#define NEED_grok_numeric_radix
+#define NEED_newRV_noinc
+#define NEED_sv_2pv_flags
 #include "ppport.h"
 
 
@@ -106,16 +111,11 @@
 #define OPT_TARG          256
 #define OPT_SKIP_BAD      512
 
+#define STR_EMPTY    '\x01'
 #define EXPERIMENT1
 
 #define AMF0_VERSION 0
 #define AMF3_VERSION 3
-
-
-#define STR_EMPTY    '\x01'
-#define TRACE(ELEM) PerlIO_printf( PerlIO_stderr(), ELEM);
-#undef TRACE
-#define TRACE(ELEM) ;
 
 #if BYTEORDER == 0x1234
     #define GAX "LIT"
@@ -206,7 +206,6 @@ struct io_struct{
     int buffer_step_inc;
     int arr_max;
     int error_code;
-    PerlInterpreter *interp;
     Sigjmp_buf target_error;
     SV * (*parse_one_object)(pTHX_ struct io_struct * io);
     char *subname;
@@ -387,14 +386,14 @@ FREE_INLINE struct io_struct *  tmpstorage_create_and_cache(pTHX_ CV *cv){
     MAGIC *mg;
     struct io_struct *io;
     SV *cache_sv;
-    mg = mg_find( (SV *)cv, PERL_MAGIC_ext);
+    mg = mg_findext( (SV *)cv, PERL_MAGIC_ext, &my_vtbl_empty);
     if (mg){
         /* fprintf(stderr, "Found magic=%p\n", mg->mg_ptr); */
         io = (struct io_struct *)mg->mg_ptr;
         return io;
     }
     cache_sv = get_sv("Storable::AMF0::CacheIO", GV_ADDMULTI | GV_ADD);
-    mg = SvTYPE(cache_sv) ? mg_find( (SV *)cache_sv, PERL_MAGIC_ext ) : NULL;
+    mg = SvTYPE(cache_sv) ? mg_findext( (SV *)cache_sv, PERL_MAGIC_ext, &my_vtbl_empty) : NULL;
     if (mg){
         /* fprintf(stderr, "Found with var magic=%p\n", mg->mg_ptr); */
         io = (struct io_struct *)mg->mg_ptr;
@@ -460,8 +459,6 @@ FREE_INLINE void io_out_cleanup(pTHX_ struct io_struct *io){
 FREE_INLINE void io_in_init(pTHX_ struct io_struct * io,  SV* data, int amf_version, SV * sv_option){
     struct io_struct *reuse_storage_ptr=io;
     bool reuse_storage = 1;
-    /*    PerlInterpreter *my_perl = io->interpreter; */
-    io->interp = aTHX;
     if ( sv_option ){
         if (! SvIOK(sv_option)){
             if ( ! sv_isobject( sv_option )){
@@ -681,7 +678,7 @@ FREE_INLINE int io_read_u24(struct io_struct * io);
 
 #define MOVERFLOW(VALUE, MAXVALUE, PROC)\
 	if (VALUE > MAXVALUE) { \
-		PerlIO_printf( PerlIO_stderr(), "Overflow in %s. expected less %d. got %d\n", PROC, MAXVALUE, VALUE); \
+		fprintf( stderr, "Overflow in %s. expected less %d. got %d\n", PROC, MAXVALUE, VALUE); \
 		io_register_error(io, ERR_OVERFLOW); \
 	}
 
@@ -844,11 +841,11 @@ FREE_INLINE bool util_is_date(SV *one){
 FREE_INLINE double util_date_time(SV *one){
     return (SvNVX(one)*1000);
 }
-FREE_INLINE void amf0_format_reference(pTHX_ struct io_struct * io, SV *ref){
+FREE_INLINE void amf0_format_reference(pTHX_ struct io_struct * io, SV *ref_sv){
     io_write_marker(aTHX_  io, MARKER0_REFERENCE);
-    io_write_u16(aTHX_  io, SvIV(ref));
+    io_write_u16(aTHX_  io, SvIV(ref_sv));
 }
-FREE_INLINE void amf0_format_scalar_ref(pTHX_ struct io_struct * io, SV *ref){
+FREE_INLINE void amf0_format_scalar_ref(pTHX_ struct io_struct * io, SV *ref_sv){
     const char *const reftype = "REFVAL";
     
     io_write_marker(aTHX_  io, MARKER0_TYPED_OBJECT);
@@ -859,7 +856,7 @@ FREE_INLINE void amf0_format_scalar_ref(pTHX_ struct io_struct * io, SV *ref){
     /* type */
     io_write_u16(aTHX_  io, 6);
     io_write_bytes(aTHX_  io, reftype, 6);
-    amf0_format_one(aTHX_  io, ref);
+    amf0_format_one(aTHX_  io, ref_sv);
     /* end marker */
     io_write_u16(aTHX_  io, 0);
     io_write_marker(aTHX_  io, MARKER0_OBJECT_END);
@@ -1518,18 +1515,18 @@ STATIC_INLINE SV* amf0_parse_ecma_array(pTHX_ struct io_struct *io){
         /* Need rollback referenses */
         int i;
         for( i = av_len(refs) - av_refs_len; i>0 ;--i){
-            SV * ref = av_pop(refs);
-            SV * value= SvRV(ref);
+            SV * ref_sv = av_pop(refs);
+            SV * value= SvRV(ref_sv);
             if ( SVt_PVHV == SvTYPE( value ) )
                 hv_clear( (HV *) value );
             else if ( SVt_PVAV == SvTYPE( value ))
                 av_clear( (AV *) value);
             else {
                 /* FIXME I am not sure about simple mortalizing values this need to be reused or cleanups*/
-                sv_2mortal(ref);
+                sv_2mortal(ref_sv);
                 io_register_error( io, ERR_INTERNAL );
             }
-            sv_2mortal(ref);
+            sv_2mortal(ref_sv);
         }
         io_set_position(io, position);
         RETVALUE = amf0_parse_object(aTHX_  io);
@@ -1767,8 +1764,8 @@ FREE_INLINE char * amf3_read_string(pTHX_ struct io_struct *io, int ref_len, STR
         }
     }
     else {
-        int ref = ref_len >> 1;	
-        SV ** ref_sv  = av_fetch(arr_string, ref, 0);
+        int ref_idx = ref_len >> 1;	
+        SV ** ref_sv  = av_fetch(arr_string, ref_idx, 0);
         if (ref_sv) {
             char* pstr;
             pstr = SvPV(*ref_sv, *str_len);
@@ -2061,9 +2058,9 @@ STATIC_INLINE SV * amf3_parse_object(pTHX_ struct io_struct *io){
         }
     }
     else {
-        SV ** ref = av_fetch(io->arr_object, obj_ref>>1, 0);
-        if (ref) {
-            RETVALUE = *ref;
+        SV ** ref_sv = av_fetch(io->arr_object, obj_ref>>1, 0);
+        if (ref_sv) {
+            RETVALUE = *ref_sv;
             SvREFCNT_inc_simple_void_NN(RETVALUE);
         }
         else {
@@ -2648,7 +2645,7 @@ FREE_INLINE void ref_clear(pTHX_ HV * go_once, SV *sv){
 /* Temporary Intenale Storage */
 #define check_bounds(low,high, mess) \
     if (items < low || items > high )\
-        croak_xs_usage( cv, mess );
+        croak( mess );
 
 MODULE = Storable::AMF0 PACKAGE = Storable::AMF0::TemporaryStorage
 PROTOTYPES: DISABLE 
@@ -2690,7 +2687,7 @@ amf_tmp_storage(...)
     PROTOTYPE: ;$
     PPCODE:
         if (items<0 || items > 1)
-            croak_xs_usage(cv, "sv_option=0");
+            croak("sv_option=0");
         if (items<1)
             sv_option = 0;
         else 

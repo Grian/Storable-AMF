@@ -1,9 +1,9 @@
 package Storable::AMF0;
-# vim: ts=8 sw=4 sts=4 
+# vim: ts=8 sw=4 sts=4 et
 use strict;
 use warnings;
 use Fcntl qw(:flock);
-our $VERSION = '1.20';
+our $VERSION = '1.21';
 use subs qw(freeze thaw);
 use Exporter 'import';
 use Carp qw(croak);
