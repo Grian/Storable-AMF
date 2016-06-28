@@ -2,7 +2,7 @@
 # vim: ft=perl et ts=8 sw=4 sts=4
 use strict;
 use ExtUtils::MakeMaker;
-use constant { MIN_PERL_VERSION => 5.007003 };
+use constant MIN_PERL_VERSION => 5.007003;
 use Config;
 
 exit if ( @ARGV && $ARGV[0] eq '--stop' );

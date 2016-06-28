@@ -46,7 +46,7 @@ is_deeply(retrieve $file, $a, "retrieve ok deeply lock_store");
 check_lock(\&Storable::AMF0::store, \&Storable::AMF0::retrieve, \&Storable::AMF0::lock_store);
 check_lock(\&Storable::AMF3::store, \&Storable::AMF3::retrieve, \&Storable::AMF3::lock_store);
 # cleanup
-unlink $file or die "Can't unlink $file: $!";
+unlink $file or warn "Can't unlink $file: $!";
 
 sub check_lock {
     my ( $store, $retrieve, $lock_store ) = @_;

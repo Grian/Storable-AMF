@@ -38,4 +38,4 @@ ok(lock_store( $a , $file));
 ok(-e $file, "exists file");
 ok(retrieve $file, "retrieve ok lock_store");
 is_deeply(retrieve $file, $a, "retrieve ok deeply lock_store");
-unlink $file or die "Can't unlink $file: $!";
+unlink $file or warn "Can't unlink $file: $!";

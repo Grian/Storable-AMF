@@ -3,7 +3,7 @@ package Storable::AMF0;
 use strict;
 use warnings;
 use Fcntl qw(:flock);
-our $VERSION = '1.21';
+our $VERSION = '1.22';
 use subs qw(freeze thaw);
 use Exporter 'import';
 use Carp qw(croak);
@@ -42,7 +42,7 @@ sub retrieve($) {
     my $file = shift;
     my $lock = shift;
 
-    open my $fh, "<:raw", $file or croak "Can't open file \"$file\" for read.";
+    open my $fh, "<:raw", $file or croak "Fail on open file \"$file\" for reading $!";
     flock $fh, LOCK_SH if $lock;
     my $buf;
     sysread $fh, $buf, (( sysseek $fh, 0, 2 ), sysseek $fh, 0,0)[0] ;
@@ -59,18 +59,18 @@ sub store($$) {
 
     my $freeze = \freeze($object);
     unless (defined $$freeze ){
-        croak "Bad object";
+        croak "Bad object $@";
     }
     else  {
         my $fh;
         if ($lock){
-            open $fh, ">>:raw", $file or croak "Can't open file \"$file\" for write.";
+            open $fh, ">>:raw", $file or croak "Fail on open file \"$file\" for writing $!";
             flock $fh, LOCK_EX if $lock;
             truncate $fh, 0;
             seek $fh,0,0;
         }
         else {
-            open $fh, ">:raw", $file or croak "Can't open file \"$file\" for write.";
+            open $fh, ">:raw", $file or croak "Fail on open file \"$file\" for writing $!";
         }
         print $fh $$freeze if defined $$freeze;
         close $fh;
@@ -86,16 +86,15 @@ sub ref_clear($);
 {{
 	require XSLoader;
 	XSLoader::load( 'Storable::AMF', $VERSION );
-    no warnings 'once';
-    *nstore = \&store;
-    *lock_nstore = \&lock_store;
+        no warnings 'once';
+        *nstore = \&store;
+        *lock_nstore = \&lock_store;
 
 	no strict 'refs';
 
 	my $my_package = __PACKAGE__ . "::";
 	for my $other_package ( "Storable::AMF::", "Storable::AMF3::" ){
-#	print STDERR "*{ $other_package$_ } = *{ $my_package$_}\n" for qw(ref_clear ref_lost_memory);
-		*{ $other_package . $_ } = *{ $my_package . $_} for qw(ref_clear ref_lost_memory VERSION);
+            *{ $other_package . $_ } = *{ $my_package . $_} for qw(ref_clear ref_lost_memory VERSION);
 	}
 	*{"Storable::AMF::$_"} = *{"Storable::AMF0::$_"} for grep m/retrieve|store/, @EXPORT_OK;
 }};
@@ -123,9 +122,6 @@ sub _ref_selfref($$){
         $$obj_addr{$addr} = 1;
         _ref_selfref( $obj_addr, $_ ) && return 1 for values %$value;
         $$obj_addr{$addr} = 0;
-    }
-    else {
-        return;
     }
 
     return;
