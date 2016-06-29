@@ -2,18 +2,20 @@
 package GrianUtils;
 use strict;
 use warnings;
-use Carp qw/carp croak/;
 use Fcntl qw(:flock);
 use File::Spec;
-use Scalar::Util qw(refaddr reftype);
-use List::Util qw(max); 
 use Exporter qw(import);
-use Carp qw(croak);
 use warnings 'all';
 
 our ( @EXPORT, @EXPORT_OK );
 our $msg;
 @EXPORT_OK = qw(ref_mem_safe my_readdir my_readfile loose $msg total_sv);
+sub max(@);
+sub carp;
+sub croak;
+sub refaddr($);
+sub reftype($);
+sub Dumper;
 
 *total_sv = \&Storable::AMF::Util::total_sv;
 
@@ -46,7 +48,7 @@ sub loose(&) {
 sub my_items {
     my $self      = shift;
     my $directory = shift;
-    croak "GrianUtils::my_items list context required" unless wantarray;
+    croak("GrianUtils::my_items list context required") unless wantarray;
     my @dir_content;
     @dir_content = GrianUtils->my_readdir( ($directory) );
     my %items;
@@ -84,11 +86,11 @@ sub my_items {
         $item->{obj} = eval $eval;
         use strict;
         $item->{eval} = $eval;
-        croak "$item->{name}: $@" if $@;
+        croak("$item->{name}: $@") if $@;
         if ( defined $item->{xml} ) {
             $item->{eval_xml} = $item->{xml};
             $item->{obj_xml}  = eval $item->{xml};
-            croak "$item->{name}: $@" if $@;
+            croak("$item->{name}: $@") if $@;
         }
         else {
             $item->{eval_xml} = $item->{eval};
@@ -111,7 +113,7 @@ sub my_readdir {
         return map { $dirname . "/" . $_ } grep { $_ !~ m/^\./ } readdir $SP;
     }
     else {
-        carp "unknown option: $option. Available options are 'abs' or 'rel'";
+        carp("unknown option: $option. Available options are 'abs' or 'rel'");
         return ();
     }
 }
@@ -188,7 +190,7 @@ sub abs2rel {
         return "./$abs_path";
     }
     print STDERR "path='$abs_path' base='$base'\n";
-    carp "Path can't transformed to relative: path='$abs_path' base='$base'" unless substr( $abs_path, 0, length($base) ) eq $base;
+    carp("Path can't transformed to relative: path='$abs_path' base='$base'") unless substr( $abs_path, 0, length($base) ) eq $base;
     return "." . substr( $abs_path, length($base) );
 }
 
@@ -199,7 +201,7 @@ sub rel2abs {
     my $base     = shift;
     $base     =~ s/[\\\/]$//;
     $rel_path =~ s/^\.\///;
-    carp "Path isn't relative: path='$rel_path' base='$base'" if $rel_path =~ /^[\\\/]/;
+    carp("Path isn't relative: path='$rel_path' base='$base'") if $rel_path =~ /^[\\\/]/;
     return File::Spec->catfile( $base, $rel_path );
 }
 
@@ -225,7 +227,7 @@ sub _all_refs_addr {
             _all_refs_addr( $c, $$item );
         }
         else {
-            croak "Unsupported type " . reftype $item;
+            croak("Unsupported type " . reftype $item);
         }
     }
     return keys %$c;
@@ -265,9 +267,9 @@ sub my_create_file {
     my $base    = shift;
     my $usage   = 'GrianUtils->my_create_file($file, $content, $base)...';
     warn "$usage: \$base not is option" unless $base;
-    croak "$usage: double dot in \$file restricted" if $file =~ m/\.\./;
+    croak("$usage: double dot in \$file restricted") if $file =~ m/\.\./;
     $base ||= '.';
-    carp "$usage: \$base --- ($base) is not a directory" unless -d $base;
+    carp("$usage: \$base --- ($base) is not a directory") unless -d $base;
     my @r = split "/", $file;
     my $lfile = pop @r;
 
@@ -275,13 +277,13 @@ sub my_create_file {
     if ( -d -w $loc_folder ) {
         my $loc_file;
         open my $fh, ">", $loc_file = File::Spec->catfile( $base, $file )
-            or croak "$usage: Can't create file($loc_file)";
+            or croak("$usage: Can't create file($loc_file)");
         binmode($fh);
         print $fh $content;
         close($fh);
     }
     elsif ( -d _ ) {
-        croak "$usage: Not writeable directory($loc_folder)";
+        croak("$usage: Not writeable directory($loc_folder)");
     }
     else {
         # Generate path for
@@ -293,30 +295,64 @@ sub my_create_file {
             $folder = File::Spec->catfile( $folder, $r );
             next if ( -d $folder );
             mkdir($folder)
-                or croak "$usage: Can't create directory ($folder) for path($loc_folder)";
+                or croak("$usage: Can't create directory ($folder) for path($loc_folder)");
         }
         $class->my_create_file( $file, $content, $base );
     }
 }
 
-GrianUtils::T::import();
 
+sub main{
+    GrianUtils::T::import('GrianUtils');
+}
+
+{
 package GrianUtils::T;
 no strict 'refs';
+sub max(@);
+sub carp;
+sub croak;
+sub refaddr($);
+sub reftype($);
+sub Dumper;
 
-sub Dumper {
-    require Data::Dumper;
-    goto &Data::Dumper::Dumper;
+our (%define1, %define2);
+my_use( <<USE );
+use Data::Dumper qw/Dumper/;
+use Carp qw/carp croak/;
+use Scalar::Util qw(refaddr reftype);
+use List::Util qw(max); 
+USE
+
+sub my_use{
+    while($_[0]=~m#^use ([:\w]+) qw[/(]([^()/\n]+)[/)];#mg){
+        my ( $module, @func ) = ( $1, split " ", $2 );
+        for my $f (@func){
+            $define1{ __PACKAGE__ . "::" . $f} = sub { 
+                    eval "require $module;";
+                    no warnings 'prototype';
+                    $module->import(@func);
+                    goto &$f if defined &$f;
+            };
+            $define2{ $f } = sub { my $c = shift; *{ $c . "::" . $f } = \&{ $f }; print "defined =$f\n" if defined &$f; };
+        }
+    }
 }
 
 sub import {
-    *{ caller(1) . '::Dumper' } = \&Dumper if caller(1);
+    my $c = shift;
+    return if !$c;
+    $_->($c) for values %define2;
+    *{'main::Dumper'}=\&Dumper;
 }
 
 sub AUTOLOAD {
-    require Data::Dumper;
-    Data::Dumper->import('Dumper');
-    goto &Dumper;
+    our $AUTOLOAD;
+    if (my $d=$define1{$AUTOLOAD}){
+        goto &$d;
+    }
 }
+}
+main();
 
 1;
