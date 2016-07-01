@@ -3,7 +3,7 @@
  * */
 #define _CRT_SECURE_NO_DEPRECATE /* Win32 compilers close eyes... */
 #define PERL_NO_GET_CONTEXT
-#undef  PERL_IMPLICIT_SYS /* Sigsetjmp will not work under this */
+//#undef  PERL_IMPLICIT_SYS /* Sigsetjmp will not work under this */
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
@@ -2634,6 +2634,13 @@ FREE_INLINE void ref_clear(pTHX_ HV * go_once, SV *sv){
         hv_clear(ref_hash);
     }
 }    
+typedef int my_cb(int version, pTHX_ struct io_struct *io, SV *data, SV *sv_option);
+int do_sigsetjmp(int version, my_cb cb, void *jmpptr, pTHX_ struct io_struct *io, SV *data, SV *sv_option);
+        
+int do_freeze(int version, pTHX_ struct io_struct *io, SV *data, SV *sv_option){
+    io_out_init(aTHX_  io, sv_option, version);
+    amf0_format_one(aTHX_  io, data);
+}
 /* Start XS defines
  *
  *
@@ -2788,9 +2795,8 @@ void freeze(SV *data, ... )
             sv_option = ST(1);
 	PERL_UNUSED_VAR(ix);
         io = tmpstorage_create_and_cache(aTHX_ cv );
-        if (! Sigsetjmp(io->target_error, 0)){
-            io_out_init(aTHX_  io, sv_option, AMF0_VERSION);
-            amf0_format_one(aTHX_  io, data);
+        
+        if (!do_sigsetjmp(AMF0_VERSION, do_freeze, io->target_error, aTHX_ io, data, sv_option)){
             if (io->reuse )
                 io_out_cleanup(aTHX_ io);
             retvalue = io_buffer(io);
